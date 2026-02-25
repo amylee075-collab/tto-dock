@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+:root {
+  --ttodock-orange: #ff5700;
+  --soft-orange: #fff5f0;
+  --background: #ffffff;
+  --foreground: #212529;
+}
+
+body {
+  font-family: "Pretendard", sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+/* 모바일 하단 탭바 하단 safe-area (노치/홈 인디케이터) */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6px); }
+  30% { transform: translateX(6px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
