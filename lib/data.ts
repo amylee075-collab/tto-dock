@@ -644,7 +644,7 @@ export const categoryStories: ShortStory[] = [
   {
     id: "history-sejong",
     title: "세종대왕과 훈민정음",
-    thumbnail: "/images/history-sejong.webp",
+    thumbnail: "/images/history-sejong.jpg",
     content: `조선 시대의 세종대왕은 백성들을 무척 사랑하셨어요. 당시에는 우리말은 있었지만 글자가 없어서 어려운 한자를 빌려 썼는데, 글을 배우지 못한 백성들은 억울한 일을 당해도 호소할 방법이 없었지요. 세종대왕은 누구나 쉽게 배우고 쓸 수 있는 우리 글자인 '훈민정음'을 만드셨어요. 훈민정음은 '백성을 가르치는 바른 소리'라는 뜻이에요. 덕분에 오늘날 우리는 한글이라는 훌륭한 글자를 가지게 되었답니다.`,
     section: "역사",
     badges: ["역사", "쉬움"],
@@ -662,7 +662,7 @@ export const categoryStories: ShortStory[] = [
   {
     id: "history-ganghwa",
     title: "강화도 조약과 근대화",
-    thumbnail: "/images/history-ganghwa.webp",
+    thumbnail: "/images/history-ganghwa.png",
     content: `조선 후기, 서양의 여러 나라가 문을 열 것을 요구하며 한반도로 다가왔습니다. 조선은 처음에는 교류를 거절했지만, 1876년 일본의 강요로 우리나라 최초의 근대적 조약인 '강화도 조약'을 맺게 되었습니다. 이 조약은 우리나라가 세계로 문을 여는 계기가 되었지만, 일본에만 유리한 내용이 담긴 '불평등 조약'이었습니다. 이후 조선에는 전등, 기차, 우체국 같은 근대 문물이 들어오기 시작했습니다. 하지만 외국의 힘에 의존하게 되면서 나라의 주권을 지키기 위한 많은 독립운동가의 노력이 이어지게 되었습니다.`,
     section: "역사",
     badges: ["역사", "어려움"],
@@ -681,7 +681,7 @@ export const categoryStories: ShortStory[] = [
   {
     id: "society-scarcity",
     title: "희소성과 합리적 선택",
-    thumbnail: "/images/society-scarcity.webp",
+    thumbnail: "/images/society-scarcity.png",
     content: `우리는 매일 선택을 하며 살아요. 아이스크림을 먹을지 떡볶이를 먹을지 고민하는 이유는 우리가 가진 돈과 시간은 정해져 있기 때문이에요. 세상에 있는 자원은 한정되어 있는데 사람들의 욕심은 끝이 없는 현상을 '희소성'이라고 해요. 희소성 때문에 우리는 가장 가치 있는 것을 고르는 '합리적 선택'을 해야 합니다.`,
     section: "사회",
     badges: ["사회", "쉬움"],
@@ -699,7 +699,7 @@ export const categoryStories: ShortStory[] = [
   {
     id: "society-democracy",
     title: "민주주의와 선거",
-    thumbnail: "/images/society-democracy.webp",
+    thumbnail: "/images/society-democracy.png",
     content: `민주주의 사회에서 국민의 뜻을 한데 모으는 가장 중요한 방법은 바로 '선거'입니다. 선거는 우리를 대신하여 나라의 일을 맡아 할 대표자를 뽑는 과정입니다. 민주 선거에는 네 가지 기본 원칙이 있습니다. 누구나 만 18세가 되면 투표할 수 있는 '보통 선거', 성별이나 재산에 상관없이 똑같이 한 표씩 행사하는 '평등 선거', 자신이 누구에게 투표했는지 남이 알지 못하게 하는 '비밀 선거', 그리고 대리인을 거치지 않고 본인이 직접 투표하는 '직접 선거'가 그것입니다.`,
     section: "사회",
     badges: ["사회", "어려움"],
@@ -722,7 +722,7 @@ export const digitalLiteracy: ShortStory[] = [
   {
     id: "digital-plastic",
     title: "플라스틱 줄이기 캠페인",
-    thumbnail: "/images/digital-plastic.webp",
+    thumbnail: "/images/digital-plastic.jpg",
     content: `최근 바다 동물의 뱃속에서 플라스틱 쓰레기가 발견되었다는 뉴스가 자주 들려옵니다. 우리가 무심코 버린 빨대와 비닐봉지가 수백 년 동안 썩지 않고 바다를 오염시키고 있습니다. 이에 따라 많은 카페에서 종이 빨대를 사용하고, 마트에서는 일회용 봉투 대신 장바구니 사용을 권장하고 있습니다. 환경 전문가는 "플라스틱 사용을 줄이는 것은 이제 선택이 아닌 지구를 지키기 위한 필수 과제"라고 강조했습니다.`,
     format: "신문기사",
     badges: ["디지털", "신문기사"],
@@ -740,7 +740,7 @@ export const digitalLiteracy: ShortStory[] = [
   {
     id: "digital-fakenews",
     title: "가짜 뉴스 판별하기",
-    thumbnail: "/images/digital-fakenews.webp",
+    thumbnail: "/images/digital-fakenews.png",
     content: `인터넷과 SNS에는 매일 엄청난 정보가 올라옵니다. 하지만 그중에는 사람들을 속이기 위해 만든 '가짜 뉴스'가 섞여 있어요. 가짜 뉴스는 자극적인 제목으로 우리의 눈길을 끌지만, 근거가 부족하거나 지어낸 이야기인 경우가 많습니다. 정보를 믿기 전에 먼저 누가 쓴 글인지 확인하고, 다른 언론사에서도 같은 내용을 보도했는지 비교해 봐야 합니다. 비판적으로 생각하는 습관이 우리를 가짜 뉴스에서 지켜줍니다.`,
     format: "미디어 비판",
     badges: ["디지털", "미디어 비판"],
