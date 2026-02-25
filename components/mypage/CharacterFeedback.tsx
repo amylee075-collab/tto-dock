@@ -12,9 +12,16 @@ export default function CharacterFeedback({
 }: CharacterFeedbackProps) {
   const [avatarError, setAvatarError] = useState(false);
 
+  const message =
+    totalSentencesRead === 0
+      ? "또독이와 함께 첫 번째 글을 읽으러 가볼까요?"
+      : totalSentencesRead <= 10
+        ? "조금만 더 읽어보면 또독이가 칭찬할 거예요!"
+        : `오늘 ${totalSentencesRead}문장을 읽었네요! 대단해요!`;
+
   return (
-    <section className="rounded-2xl bg-soft-orange border border-ttodock-orange/10 p-6 sm:p-8 shadow-sm">
-      <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
+    <section className="rounded-2xl bg-soft-orange border border-ttodock-orange/10 p-6 sm:p-8 shadow-sm overflow-hidden">
+      <div className="flex flex-row items-center gap-6 sm:gap-8 min-w-0">
         <span className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white shadow-sm">
           {!avatarError ? (
             <Image
@@ -31,12 +38,10 @@ export default function CharacterFeedback({
             </span>
           )}
         </span>
-        <div className="flex-1 text-center sm:text-left">
-          <div className="relative inline-block rounded-2xl border border-ttodock-orange/20 bg-white px-5 py-4 shadow-sm">
-            <p className="font-bold text-[#212529] text-lg leading-snug">
-              오늘 {totalSentencesRead}문장을 읽었네요!
-              <br />
-              대단해요!
+        <div className="flex-1 min-w-0 flex items-center">
+          <div className="relative w-full rounded-2xl border border-ttodock-orange/20 bg-white px-5 py-4 shadow-sm">
+            <p className="font-bold text-[#212529] text-lg leading-snug whitespace-nowrap overflow-hidden text-ellipsis">
+              {message}
             </p>
             <span
               className="absolute -left-2 top-1/2 -translate-y-1/2 h-4 w-4 rotate-45 border-l border-b border-ttodock-orange/20 bg-white"

@@ -93,7 +93,7 @@ export default function ReadingContentExperience({
             }
           }}
           data-sentence-index={i}
-          className={`relative z-10 cursor-pointer text-lg leading-relaxed text-[#212529] py-6 transition-[opacity,filter] duration-200 ${
+          className={`relative z-10 cursor-pointer text-xl md:text-[1.5rem] leading-relaxed text-[#212529] py-3 transition-[opacity,filter] duration-200 ${
             isActive ? "pl-5 -ml-1 font-bold" : "opacity-20 blur-[1px] hover:opacity-40 hover:blur-0"
           }`}
           initial={false}
@@ -132,13 +132,13 @@ export default function ReadingContentExperience({
           asAccordion
         />
       </div>
-      <article className="flex-1 min-w-0 py-4 lg:py-6 order-2 lg:order-2 relative z-10 max-w-3xl lg:max-w-none">
+      <article className="flex-1 min-w-0 py-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
         <h1 className="font-extrabold text-2xl text-[#212529] mb-2">
           {title}
         </h1>
 
-        <div className="pb-[50vh] pb-24">
-          <div className="flex flex-col gap-y-8">
+        <div className="pb-20">
+          <div className="flex flex-col gap-y-4">
             {sentences.map((s, i) => renderSentenceWithVocabulary(s, i))}
           </div>
         </div>
@@ -199,7 +199,7 @@ export default function ReadingContentExperience({
         )}
       </article>
 
-      <div className="hidden lg:block lg:order-1 lg:shrink-0">
+      <div className="hidden lg:block lg:order-2 lg:shrink-0 lg:sticky lg:top-8 lg:self-start">
         <ReadingSidebar
           wpm={wpm}
           wpmStatus={status}

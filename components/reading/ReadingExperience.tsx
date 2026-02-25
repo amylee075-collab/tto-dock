@@ -79,13 +79,15 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
             </p>
           )}
         </article>
-        <ReadingSidebar
-          wpm={0}
-          tier="보통"
-          readCount={selectedKeySentences.size}
-          totalSentences={sentences.length}
-          className="order-2 lg:order-none w-full lg:w-64"
-        />
+        <div className="order-2 lg:shrink-0 lg:sticky lg:top-8 lg:self-start">
+          <ReadingSidebar
+            wpm={0}
+            tier="보통"
+            readCount={selectedKeySentences.size}
+            totalSentences={sentences.length}
+            className="w-full lg:w-64"
+          />
+        </div>
       </div>
     );
   }
@@ -102,14 +104,14 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
           asAccordion
         />
       </div>
-      <article className="flex-1 min-w-0 py-4 lg:py-6 order-2 lg:order-2 relative z-10 max-w-3xl lg:max-w-none">
+      <article className="flex-1 min-w-0 py-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
         <h1 className="font-extrabold text-2xl text-[#212529] mb-1">
           {passage.title}
         </h1>
         <p className="text-sm text-gray-500 mb-8">{passage.summary}</p>
 
-        <div className="pb-[50vh] pb-24">
-          <div className="flex flex-col gap-y-8">
+        <div className="pb-20">
+          <div className="flex flex-col gap-y-4">
             {sentences.map((sentence, i) => {
               const isActiveSentence = activeIndex === i;
               return (
@@ -147,7 +149,7 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
                       }
                     }}
                     data-sentence-index={i}
-                    className={`relative z-10 cursor-pointer text-lg leading-relaxed text-[#212529] py-6 transition-[opacity,filter] duration-200 ${
+                    className={`relative z-10 cursor-pointer text-xl md:text-[1.5rem] leading-relaxed text-[#212529] py-3 transition-[opacity,filter] duration-200 ${
                       isActiveSentence ? "pl-5 -ml-1 font-bold" : "opacity-20 blur-[1px] hover:opacity-40 hover:blur-0"
                     }`}
                     initial={false}
@@ -192,7 +194,7 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
         />
       </article>
 
-      <div className="hidden lg:block lg:order-1 lg:shrink-0">
+      <div className="hidden lg:block lg:order-2 lg:shrink-0 lg:sticky lg:top-8 lg:self-start">
         <ReadingSidebar
           wpm={wpm}
           wpmStatus={status}

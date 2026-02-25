@@ -1,29 +1,90 @@
 "use client";
 
-import { useState, useEffect } from "react";
+/**
+ * 핵심 단어 찾기 - 원본 텍스트 보존형
+ * 문장을 split하지 않고, 정답/오답 키워드 위치만 찾아 해당 부분만 .training-word-card span으로 감쌈.
+ */
+import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { buildSegments } from "@/components/reading/CoreWordMode";
 import { CORE_WORD_QUIZ_ITEMS } from "@/lib/coreWordPractice";
 import Link from "next/link";
 
-const WRONG_FEEDBACK =
-  "아직 정답이 아니에요. 문장의 핵심이 되는 단어를 다시 골라 보세요. 한 번 더 생각해 볼까요? 🐾";
+export type SentenceSegment =
+  | { type: "text"; content: string }
+  | { type: "keyword"; content: string; wordKey: string; isCorrect: boolean };
+
+/**
+ * 문장 원문을 유지한 채, selectableWords 등장 위치만 찾아
+ * [텍스트][키워드][텍스트]... 세그먼트 배열로 만듦. 겹치면 긴 단어 우선.
+ * 각 키워드 occurrence는 렌더 시 인덱스(i)로 구분해 중복 단어 클릭 시 해당 위치만 반응.
+ */
+function buildSegmentsFromSentence(
+  sentence: string,
+  selectableWords: string[],
+  correctAnswer: string
+): SentenceSegment[] {
+  if (!sentence || selectableWords.length === 0) {
+    return [{ type: "text", content: sentence }];
+  }
+  const sorted = [...selectableWords].sort((a, b) => b.length - a.length);
+  const ranges: { start: number; end: number; wordKey: string }[] = [];
+
+  for (const word of sorted) {
+    let pos = 0;
+    while (pos < sentence.length) {
+      const idx = sentence.indexOf(word, pos);
+      if (idx === -1) break;
+      const overlaps = ranges.some(
+        (r) => !(idx >= r.end || idx + word.length <= r.start)
+      );
+      if (!overlaps) {
+        ranges.push({
+          start: idx,
+          end: idx + word.length,
+          wordKey: word,
+        });
+      }
+      pos = idx + 1;
+    }
+  }
+
+  ranges.sort((a, b) => a.start - b.start);
+
+  const segments: SentenceSegment[] = [];
+  let lastEnd = 0;
+  for (const r of ranges) {
+    if (r.start > lastEnd) {
+      segments.push({
+        type: "text",
+        content: sentence.slice(lastEnd, r.start),
+      });
+    }
+    segments.push({
+      type: "keyword",
+      content: sentence.slice(r.start, r.end),
+      wordKey: r.wordKey,
+      isCorrect: r.wordKey === correctAnswer,
+    });
+    lastEnd = r.end;
+  }
+  if (lastEnd < sentence.length) {
+    segments.push({ type: "text", content: sentence.slice(lastEnd) });
+  }
+  return segments;
+}
 
 const TOTAL = CORE_WORD_QUIZ_ITEMS.length;
 
-/** 정답 시 반짝이는 입자 효과 */
 function ParticleBurst({ onComplete }: { onComplete: () => void }) {
-  const count = 12;
   useEffect(() => {
     const t = setTimeout(onComplete, 800);
     return () => clearTimeout(t);
   }, [onComplete]);
-
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-[20px]">
-      {Array.from({ length: count }).map((_, i) => {
-        const angle = (i / count) * 360;
+      {Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i / 12) * 360;
         const rad = (angle * Math.PI) / 180;
         const x = Math.cos(rad) * 80;
         const y = Math.sin(rad) * 80;
@@ -38,10 +99,7 @@ function ParticleBurst({ onComplete }: { onComplete: () => void }) {
               x: [0, x],
               y: [0, y],
             }}
-            transition={{
-              duration: 0.7,
-              ease: "easeOut",
-            }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
           />
         );
       })}
@@ -52,27 +110,38 @@ function ParticleBurst({ onComplete }: { onComplete: () => void }) {
 export default function CoreWordPractice() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
-  const [wrongWordKey, setWrongWordKey] = useState<string | null>(null);
+  const [wrongSegmentId, setWrongSegmentId] = useState<number | null>(null);
+  const [selectedWordKey, setSelectedWordKey] = useState<string | null>(null);
   const [showParticles, setShowParticles] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
   const item = CORE_WORD_QUIZ_ITEMS[currentIndex];
   const isLast = currentIndex === TOTAL - 1;
-  const segments = item
-    ? buildSegments(item.sentence, item.selectableWords)
+  const correctAnswer = item?.correctAnswer ?? "";
+  const segments: SentenceSegment[] = item
+    ? buildSegmentsFromSentence(
+        item.sentence,
+        item.selectableWords,
+        correctAnswer
+      )
     : [];
 
-  const handleWordClick = (wordKey: string) => {
+  const handleKeywordClick = (
+    segmentIndex: number,
+    isCorrect: boolean,
+    wordKey: string
+  ) => {
     if (!item) return;
     setFeedback(null);
-    setWrongWordKey(null);
-    if (wordKey === item.correctAnswer) {
+    setWrongSegmentId(null);
+    setSelectedWordKey(wordKey);
+    if (isCorrect) {
       setFeedback("correct");
       setShowParticles(true);
     } else {
       setFeedback("wrong");
-      setWrongWordKey(wordKey);
-      setTimeout(() => setWrongWordKey(null), 500);
+      setWrongSegmentId(segmentIndex);
+      setTimeout(() => setWrongSegmentId(null), 500);
     }
   };
 
@@ -81,16 +150,47 @@ export default function CoreWordPractice() {
     if (isLast) return;
     setCurrentIndex((i) => i + 1);
     setFeedback(null);
+    setSelectedWordKey(null);
     setShowParticles(false);
   };
 
   const showCompletion = isLast && feedback === "correct";
 
+  const sentenceNodes: ReactNode[] = [];
+  segments.forEach((seg, i) => {
+    if (seg.type === "text") {
+      sentenceNodes.push(
+        <span key={i} className="inline" style={{ margin: 0, padding: 0 }}>
+          {seg.content}
+        </span>
+      );
+      return;
+    }
+    const isCorrectSelected = feedback === "correct" && seg.isCorrect;
+    const isWrong = wrongSegmentId === i;
+    sentenceNodes.push(
+      <motion.button
+        key={i}
+        type="button"
+        onClick={() => handleKeywordClick(i, seg.isCorrect, seg.wordKey)}
+        className={`inline m-0 border-0 p-0 text-xl md:text-3xl leading-inherit tracking-normal outline-none ring-0 focus:outline-none focus:ring-0 text-[#212529] font-medium bg-transparent ${isWrong ? "animate-shake text-red-700" : ""}`}
+        style={{ margin: 0, padding: 0 }}
+        whileTap={!feedback ? { scale: 0.99 } : {}}
+      >
+        <span
+          className={`training-word-card ${isCorrectSelected ? "selected" : isWrong ? "wrong" : ""}`}
+          style={{ margin: 0 }}
+        >
+          {seg.content}
+        </span>
+      </motion.button>
+    );
+  });
+
   return (
-    <div className="w-full min-h-[calc(100vh-4rem)] flex flex-col">
-      {/* 1. 상단: 스테이지 내비게이션 (진행도) */}
-      <header className="px-4 pt-4 sm:pt-6 pb-2">
-        <div className="max-w-4xl mx-auto">
+    <div className="w-full flex flex-col h-auto">
+      <header className="pt-4 sm:pt-6 pb-2">
+        <div className="w-full">
           <h1 className="font-extrabold text-xl sm:text-2xl text-[#212529] mb-3">
             핵심 단어 찾기
           </h1>
@@ -109,15 +209,13 @@ export default function CoreWordPractice() {
         </div>
       </header>
 
-      {/* 2. 중앙: 문제 안내 문구 */}
       {!showCompletion && (
-        <p className="text-center font-bold text-lg sm:text-xl text-[#ff5700] px-4 py-3">
+        <p className="text-center font-bold text-lg text-[#ff5700] py-8">
           문장의 주인공을 찾아 클릭하세요!
         </p>
       )}
 
-      {/* 3. 중앙 메인: 디자인된 퀴즈 문장 카드 */}
-      <section className="flex-1 flex flex-col gap-6 w-full max-w-4xl mx-auto px-4 sm:px-6 pb-8">
+      <section className="flex flex-col gap-y-10 w-full pb-8">
         <div className="w-full min-w-0">
           <AnimatePresence mode="wait">
             {showCompletion ? (
@@ -143,64 +241,21 @@ export default function CoreWordPractice() {
               </motion.div>
             ) : (
               <motion.div
-                key={item.id}
+                key={item?.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="relative rounded-[20px] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-gray-100 overflow-hidden min-h-[200px]"
-                style={{
-                  backgroundImage: `radial-gradient(circle, #e8e8e8 1px, transparent 1px)`,
-                  backgroundSize: "24px 24px",
-                  backgroundColor: "#ffffff",
-                }}
+                className="relative rounded-2xl overflow-hidden h-auto bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
               >
                 {showParticles && (
                   <ParticleBurst onComplete={() => setShowParticles(false)} />
                 )}
-                <div className="relative p-8 sm:p-10">
+                <div className="relative p-6 sm:p-8 md:p-10">
                   <p
-                    className="text-[32px] sm:text-[36px] leading-relaxed tracking-wide text-[#212529]"
-                    style={{ lineHeight: 1.8 }}
+                    className="text-xl md:text-3xl text-[#212529] tracking-normal break-keep leading-[2.5] md:leading-[3.5]"
+                    style={{ margin: 0, padding: 0 }}
                   >
-                    {segments.map((seg, i) => {
-                      if (seg.type === "text") {
-                        if (segments[i - 1]?.type === "word") return null;
-                        return <span key={i}>{seg.text}</span>;
-                      }
-                      const nextText =
-                        segments[i + 1]?.type === "text"
-                          ? segments[i + 1].text
-                          : "";
-                      const isCorrectHighlight =
-                        feedback === "correct" &&
-                        seg.wordKey === item.correctAnswer;
-                      const isWrong = wrongWordKey === seg.wordKey;
-                      return (
-                        <span
-                          key={i}
-                          className="inline"
-                          style={{ whiteSpace: "normal" }}
-                        >
-                          <motion.button
-                            type="button"
-                            onClick={() => handleWordClick(seg.wordKey)}
-                            className={`m-0 inline-flex align-baseline rounded-full border-2 px-3 py-1.5 text-[32px] sm:text-[36px] font-medium leading-inherit transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ff5700]/50 focus:ring-offset-2
-                              ${
-                                isCorrectHighlight
-                                  ? "border-[#ff5700] bg-[#ff5700]/15 text-[#ff5700]"
-                                  : isWrong
-                                    ? "border-red-500 bg-red-50 text-red-700 animate-shake"
-                                    : "border-gray-200 bg-white text-[#212529] hover:border-[#ff5700] hover:bg-[#fff5f0] hover:text-[#ff5700]"
-                              }`}
-                            whileHover={!feedback ? { scale: 1.05 } : {}}
-                            whileTap={!feedback ? { scale: 0.98 } : {}}
-                          >
-                            {seg.displayLabel}
-                          </motion.button>
-                          {nextText}
-                        </span>
-                      );
-                    })}
+                    {sentenceNodes}
                   </p>
                 </div>
               </motion.div>
@@ -208,7 +263,7 @@ export default function CoreWordPractice() {
           </AnimatePresence>
 
           {!showCompletion && item && (
-            <div className="mt-6 flex justify-center">
+            <div className="mt-8 mb-4 flex justify-center">
               <button
                 type="button"
                 onClick={goNext}
@@ -221,62 +276,72 @@ export default function CoreWordPractice() {
           )}
         </div>
 
-        {/* 4. 하단: 캐릭터 + 말풍선 (정답 시 기뻐하는 모션) */}
-        {(feedback === "correct" || feedback === "wrong") && !showCompletion && (
+        {(feedback === "correct" || feedback === "wrong") && !showCompletion && item && (
           <motion.aside
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex-shrink-0 w-full max-w-xl mx-auto"
+            className="flex-shrink-0 w-full max-w-xl mx-auto px-2"
           >
-            <div className="rounded-2xl bg-[#fff5f0] border border-[#ff5700]/20 p-6 flex flex-col sm:flex-row items-center gap-4">
-              <motion.span
-                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#ff5700]/20 bg-white shadow-sm"
-                animate={
-                  feedback === "correct"
-                    ? {
-                        scale: [1, 1.15, 1],
-                        transition: {
-                          duration: 0.5,
-                          ease: "easeOut",
-                        },
-                      }
-                    : {}
-                }
-              >
-                {!avatarError ? (
-                  <Image
-                    src="/images/character.png"
-                    alt="똑똑이"
-                    width={80}
-                    height={80}
-                    className="w-full h-auto object-contain object-top"
-                    onError={() => setAvatarError(true)}
-                  />
-                ) : (
-                  <span className="text-4xl" aria-hidden>
-                    🦊
-                  </span>
-                )}
-              </motion.span>
-              <div className="flex-1 text-center sm:text-left">
-                <div className="relative inline-block rounded-2xl border border-[#ff5700]/20 bg-white px-4 py-3 shadow-sm">
-                  <p
-                    className={`font-medium text-base leading-relaxed ${
-                      feedback === "correct"
-                        ? "text-[#212529]"
-                        : "text-red-700"
-                    }`}
+            <div
+              className={`rounded-2xl bg-[#fff5f0] border border-[#ff5700]/20 flex items-center gap-3 ${
+                feedback === "correct" ? "p-4" : "p-4 flex-col sm:flex-row"
+              }`}
+            >
+              {feedback === "correct" ? (
+                <>
+                  <motion.span
+                    className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#ff5700]/20 bg-white shadow-sm"
+                    animate={{
+                      scale: [1, 1.1, 1],
+                      transition: { duration: 0.4, ease: "easeOut" },
+                    }}
                   >
-                    {feedback === "correct"
-                      ? item.correctFeedback
-                      : WRONG_FEEDBACK}
+                    {!avatarError ? (
+                      <Image
+                        src="/images/character.png"
+                        alt="똑똑이"
+                        width={56}
+                        height={56}
+                        className="w-full h-auto object-contain object-top"
+                        onError={() => setAvatarError(true)}
+                      />
+                    ) : (
+                      <span className="text-3xl" aria-hidden>🦊</span>
+                    )}
+                  </motion.span>
+                  <p className="font-bold text-[#212529] text-base leading-relaxed">
+                    {selectedWordKey && item.feedbackByWord[selectedWordKey]
+                      ? item.feedbackByWord[selectedWordKey]
+                      : item.feedbackByWord[item.correctAnswer]}
                   </p>
-                  <span
-                    className="absolute -left-2 top-8 sm:top-1/2 sm:-translate-y-1/2 h-4 w-4 rotate-45 border-l border-b border-[#ff5700]/20 bg-white"
-                    aria-hidden
-                  />
-                </div>
-              </div>
+                </>
+              ) : (
+                <>
+                  <motion.span
+                    className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#ff5700]/20 bg-white shadow-sm"
+                  >
+                    {!avatarError ? (
+                      <Image
+                        src="/images/character.png"
+                        alt="똑똑이"
+                        width={56}
+                        height={56}
+                        className="w-full h-auto object-contain object-top"
+                        onError={() => setAvatarError(true)}
+                      />
+                    ) : (
+                      <span className="text-3xl" aria-hidden>🦊</span>
+                    )}
+                  </motion.span>
+                  <div className="flex-1 text-center sm:text-left min-w-0">
+                    <p className="font-medium text-red-700 text-base leading-relaxed">
+                      {selectedWordKey && item.feedbackByWord[selectedWordKey]
+                        ? item.feedbackByWord[selectedWordKey]
+                        : "다시 생각해보자!"}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </motion.aside>
         )}

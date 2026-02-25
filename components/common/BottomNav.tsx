@@ -24,7 +24,7 @@ export default function BottomNav() {
       role="navigation"
       aria-label="하단 메뉴"
     >
-      <ul className="flex items-center justify-around h-14 max-w-lg mx-auto px-2">
+      <ul className="flex items-center justify-around h-14 w-full px-2 sm:px-4">
         {tabs.map(({ href, label, icon }) => {
           const active = isActive(href);
           return (

@@ -49,6 +49,7 @@ export default function ShortStoryReading({
   const [step, setStep] = useState<Step>("READING");
   const [resultWpm, setResultWpm] = useState(0);
   const [coreCorrect, setCoreCorrect] = useState(false);
+  const [coreSkipped, setCoreSkipped] = useState(false);
   const [coreChecked, setCoreChecked] = useState<boolean | null>(null);
   const [coreInput, setCoreInput] = useState("");
   const [mcqIndex, setMcqIndex] = useState(0);
@@ -87,6 +88,15 @@ export default function ShortStoryReading({
       setTimeout(() => setStep("READING_QUIZ"), 800);
     }
   };
+  const handleCoreSkip = () => {
+    setCoreCorrect(false);
+    setCoreChecked(false);
+    setCoreSkipped(true);
+  };
+  const goToReadingQuiz = () => {
+    setCoreSkipped(false);
+    setStep("READING_QUIZ");
+  };
 
   const currentMcq = readQuizzes[mcqIndex];
   const mcqDone = mcqIndex >= readQuizzes.length;
@@ -95,6 +105,10 @@ export default function ShortStoryReading({
     const correct = optionIndex === currentMcq.ans;
     setMcqFeedback(correct ? "correct" : "wrong");
     if (correct) setMcqCorrectCount((c) => c + 1);
+  };
+  const handleMcqSkip = () => {
+    if (mcqFeedback !== null) return;
+    setMcqFeedback("wrong");
   };
   const handleMcqNext = () => {
     setMcqFeedback(null);
@@ -107,6 +121,8 @@ export default function ShortStoryReading({
 
   const totalQuiz = 1 + readQuizzes.length;
   const totalCorrect = (coreCorrect ? 1 : 0) + mcqCorrectCount;
+  const quizProgressIndex = step === "CORE_QUIZ" ? 1 : step === "READING_QUIZ" ? mcqIndex + 2 : 1;
+  const quizProgressPercent = totalQuiz > 0 ? (quizProgressIndex / totalQuiz) * 100 : 0;
 
   return (
     <div className="min-h-screen w-full">
@@ -132,10 +148,10 @@ export default function ShortStoryReading({
                 asAccordion
               />
             </div>
-            <article className="flex-1 min-w-0 py-4 lg:py-6 order-2 lg:order-2 relative z-10 max-w-3xl lg:max-w-none">
+            <article className="flex-1 min-w-0 py-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
               <h1 className="font-extrabold text-2xl text-[#212529] mb-6">{title}</h1>
-              <div className="pb-[50vh] pb-24">
-                <div className="flex flex-col gap-y-8">
+              <div className="pb-20">
+                <div className="flex flex-col gap-y-4">
                   {sentences.map((sentence, i) => {
                     const segments = splitSentenceByVocabulary(sentence, vocabulary);
                     const isActive = activeIndex === i;
@@ -174,7 +190,7 @@ export default function ShortStoryReading({
                             }
                           }}
                           data-sentence-index={i}
-                          className={`relative z-10 cursor-pointer text-lg leading-relaxed text-[#212529] py-6 transition-[opacity,filter] duration-200 ${
+                          className={`relative z-10 cursor-pointer text-xl md:text-[1.5rem] leading-relaxed text-[#212529] py-3 transition-[opacity,filter] duration-200 ${
                             isActive ? "pl-5 -ml-1 font-bold" : "opacity-20 blur-[1px] hover:opacity-40 hover:blur-0"
                           }`}
                           initial={false}
@@ -233,8 +249,8 @@ export default function ShortStoryReading({
                 />
               )}
             </article>
-            {/* PC: 좌측 고정 학습 진행률 사이드바 */}
-            <div className="hidden lg:block lg:order-1 lg:shrink-0">
+            {/* PC: 우측 고정 학습 진행률 사이드바 */}
+            <div className="hidden lg:block lg:order-2 lg:shrink-0 lg:sticky lg:top-8 lg:self-start">
               <ReadingSidebar
                 wpm={wpm}
                 wpmStatus={status}
@@ -294,37 +310,77 @@ export default function ShortStoryReading({
             transition={FADE.transition}
             className="w-full min-h-[80vh] flex flex-col items-center justify-center py-12 px-4"
           >
-            <div className="w-full max-w-xl">
-              <h2 className="font-bold text-xl text-[#212529] mb-6">핵심 단어 퀴즈</h2>
-              {!coreCorrect ? (
+            <div className="w-full max-w-[1000px]">
+              <div className="flex items-center justify-between text-xl font-semibold text-[#212529] mb-2">
+                <span>1 / {totalQuiz}</span>
+              </div>
+              <div className="h-2 rounded-full bg-gray-100 overflow-hidden mb-6">
+                <motion.div
+                  className="h-full rounded-full bg-[#ff5700]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${quizProgressPercent}%` }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                />
+              </div>
+              <h2 className="font-bold text-3xl text-[#212529] mb-6">핵심 단어 퀴즈</h2>
+              {coreSkipped ? (
+                <div className="text-center py-4">
+                  <p className="text-amber-700 font-bold text-xl mb-2">정답을 확인해 볼까요?</p>
+                  <p className="text-xl text-gray-700 mb-6">
+                    정답: <span className="font-bold text-[#212529]">{coreQuiz.answer}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={goToReadingQuiz}
+                    className="rounded-xl px-8 py-4 min-h-[3.25rem] font-bold text-white bg-[#ff5700] hover:bg-[#e64d00] active:scale-[0.98] transition-all"
+                  >
+                    다음 퀴즈로
+                  </button>
+                </div>
+              ) : !coreCorrect ? (
                 <>
-                  <p className="text-[#212529] font-medium mb-4">{coreQuiz.question}</p>
-                  <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-[#212529] font-medium text-xl mb-6">{coreQuiz.question}</p>
+                  <div className="flex flex-col sm:flex-row items-stretch gap-3">
                     <input
                       type="text"
                       value={coreInput}
                       onChange={(e) => { setCoreInput(e.target.value); setCoreChecked(null); }}
                       onKeyDown={(e) => e.key === "Enter" && handleCoreCheck()}
                       placeholder="정답을 입력하세요"
-                      className="rounded-lg border border-gray-200 px-4 py-3 text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#ff5700]/50 flex-1 min-w-[200px]"
+                      className="rounded-xl border-2 border-gray-200 px-5 py-4 text-xl text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#ff5700]/50 focus:border-[#ff5700] flex-1 min-w-0 min-h-[3.5rem]"
                     />
-                    <button
-                      type="button"
-                      onClick={handleCoreCheck}
-                      className="rounded-xl px-6 py-3 font-bold text-white bg-[#ff5700] hover:opacity-90"
-                    >
-                      정답 확인
-                    </button>
+                    <div className="flex flex-row gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleCoreCheck}
+                        className="rounded-xl px-6 py-4 min-h-[3.25rem] font-bold text-white bg-[#ff5700] hover:bg-[#e64d00] active:scale-[0.98] transition-all"
+                      >
+                        정답 확인
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCoreSkip}
+                        className="rounded-xl px-5 py-4 min-h-[3.25rem] font-bold text-gray-600 border-2 border-gray-200 bg-white hover:bg-gray-50 active:scale-[0.98] transition-all"
+                      >
+                        모르겠어요
+                      </button>
+                    </div>
                   </div>
                   {coreChecked === false && (
-                    <p className="mt-4 text-red-600 font-medium">아쉬워요. 다시 입력해 보세요.</p>
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 text-red-600 font-medium text-lg"
+                    >
+                      아쉬워요. 다시 입력해 보세요.
+                    </motion.p>
                   )}
                 </>
               ) : (
                 <motion.p
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="text-[#ff5700] font-bold text-lg"
+                  className="text-[#ff5700] font-bold text-xl"
                 >
                   정답이에요! 다음 퀴즈로 넘어갑니다...
                 </motion.p>
@@ -343,25 +399,35 @@ export default function ShortStoryReading({
             transition={FADE.transition}
             className="w-full min-h-[80vh] flex flex-col justify-center py-12 px-4"
           >
-            <div className="w-full max-w-2xl mx-auto">
-              <h2 className="font-bold text-xl text-[#212529] mb-2">독해 퀴즈</h2>
-              <p className="text-sm text-gray-500 mb-6">
-                {mcqIndex + 1} / {readQuizzes.length}
-              </p>
-              <p className="text-[#212529] font-medium mb-6">{currentMcq.q}</p>
-              <ul className="space-y-3">
+            <div className="w-full max-w-[1000px] mx-auto">
+              <div className="flex items-center justify-between text-xl font-semibold text-[#212529] mb-2">
+                <span>{mcqIndex + 2} / {totalQuiz}</span>
+              </div>
+              <div className="h-2 rounded-full bg-gray-100 overflow-hidden mb-6">
+                <motion.div
+                  className="h-full rounded-full bg-[#ff5700]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${quizProgressPercent}%` }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                />
+              </div>
+              <h2 className="font-bold text-3xl text-[#212529] mb-2">독해 퀴즈</h2>
+              <p className="text-[#212529] font-medium text-xl mb-6">{currentMcq.q}</p>
+              <ul className="space-y-4">
                 {currentMcq.options.map((opt, optIdx) => (
                   <li key={optIdx}>
                     <button
                       type="button"
                       onClick={() => handleMcqSelect(optIdx)}
                       disabled={mcqFeedback !== null}
-                      className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-colors disabled:opacity-80 ${
+                      className={`w-full text-left rounded-xl border-2 px-5 py-4 text-xl transition-all disabled:opacity-80 min-h-[3.5rem] ${
                         mcqFeedback === null
                           ? "border-gray-100 hover:border-[#ff5700]/40 hover:bg-[#fff5f0]"
                           : optIdx === currentMcq.ans
                             ? "border-green-500 bg-green-50 text-green-800"
-                            : "border-gray-100 bg-gray-50"
+                            : mcqFeedback === "wrong" && optIdx === currentMcq.ans
+                              ? "border-green-500 bg-green-50 text-green-800"
+                              : "border-gray-100 bg-gray-50"
                       }`}
                     >
                       {opt}
@@ -369,18 +435,27 @@ export default function ShortStoryReading({
                   </li>
                 ))}
               </ul>
+              {mcqFeedback === null && (
+                <button
+                  type="button"
+                  onClick={handleMcqSkip}
+                  className="mt-4 rounded-xl px-5 py-3 font-bold text-gray-600 border-2 border-gray-200 bg-white hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  모르겠어요
+                </button>
+              )}
               <AnimatePresence mode="wait">
                 {mcqFeedback === "correct" && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mt-6 flex items-center gap-3 p-4 rounded-xl bg-[#fff5f0] border border-[#ff5700]/20"
+                    className="mt-6 flex items-center gap-3 p-5 rounded-xl bg-[#fff5f0] border border-[#ff5700]/20"
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ff5700]/30 bg-white">
-                      <Image src="/images/character.png" alt="" width={40} height={40} className="w-full h-auto object-contain" />
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ff5700]/30 bg-white">
+                      <Image src="/images/character.png" alt="" width={48} height={48} className="w-full h-auto object-contain" />
                     </span>
-                    <p className="font-bold text-[#212529]">정답이에요! 똑똑해!</p>
+                    <p className="font-bold text-xl text-[#212529]">정답이에요! 똑똑해!</p>
                   </motion.div>
                 )}
                 {mcqFeedback === "wrong" && (
@@ -388,12 +463,12 @@ export default function ShortStoryReading({
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mt-6 flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200"
+                    className="mt-6 flex flex-col gap-2 p-5 rounded-xl bg-amber-50 border border-amber-200"
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-amber-200 bg-white">
-                      <Image src="/images/character.png" alt="" width={40} height={40} className="w-full h-auto object-contain opacity-80" />
-                    </span>
-                    <p className="font-medium text-amber-800">아쉬워요, 다시 한번 읽어볼까요?</p>
+                    <p className="font-medium text-xl text-amber-800">아쉬워요. 정답을 확인해 볼까요?</p>
+                    <p className="text-lg text-amber-900">
+                      정답: <span className="font-bold">{currentMcq.options[currentMcq.ans]}</span>
+                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -401,7 +476,7 @@ export default function ShortStoryReading({
                 <button
                   type="button"
                   onClick={handleMcqNext}
-                  className="mt-6 rounded-xl px-6 py-3 font-bold text-white bg-[#ff5700]"
+                  className="mt-6 rounded-xl px-8 py-4 min-h-[3.25rem] font-bold text-white bg-[#ff5700] hover:bg-[#e64d00] active:scale-[0.98] transition-all text-lg"
                 >
                   {mcqIndex + 1 < readQuizzes.length ? "다음 문제" : "결과 보기"}
                 </button>

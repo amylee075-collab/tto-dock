@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function CoreWordPracticePage() {
   return (
-    <div className="w-full max-w-7xl mx-auto">
+    <div className="core-word-practice w-full max-w-screen-xl mx-auto px-4 md:px-0 mt-12 min-h-screen bg-[#FFFDF9]">
       <CoreWordPractice />
     </div>
   );

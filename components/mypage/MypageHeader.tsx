@@ -1,38 +1,67 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
+/** 접속일 기준 학생(YYMMDD) 형식 반환 */
+function getStudentDisplayName(): string {
+  const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `학생(${yy}${mm}${dd})`;
+}
+
+export interface RepresentativeBadge {
+  icon: string;
+  title: string;
+}
 
 interface MypageHeaderProps {
   title: string;
-  nickname: string;
+  /** 우측 대표 배지. null이면 미획득 안내 */
+  representativeBadge: RepresentativeBadge | null;
 }
 
-export default function MypageHeader({ title, nickname }: MypageHeaderProps) {
-  const [avatarError, setAvatarError] = useState(false);
+export default function MypageHeader({
+  title,
+  representativeBadge,
+}: MypageHeaderProps) {
+  const displayName = getStudentDisplayName();
 
   return (
     <header className="flex items-center justify-between gap-4 mb-8">
       <div>
         <h1 className="font-extrabold text-2xl text-[#212529]">{title}</h1>
-        <p className="mt-1 text-gray-600 font-medium">{nickname}님</p>
+        <p className="mt-1 text-gray-600 font-medium">{displayName}님</p>
       </div>
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gray-100 bg-soft-orange shadow-sm">
-        {!avatarError ? (
-          <Image
-            src="/images/character.png"
-            alt="똑똑이"
-            width={56}
-            height={56}
-            className="w-full h-auto object-contain object-top"
-            onError={() => setAvatarError(true)}
-          />
+      <div
+        className="flex h-[8rem] min-h-[8rem] w-[10rem] min-w-[10rem] max-w-[12rem] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-gray-100 bg-white px-4 py-3 shadow-sm"
+        aria-label="대표 배지"
+      >
+        {representativeBadge ? (
+          <>
+            <span
+              className="text-4xl md:text-5xl leading-none shrink-0"
+              aria-hidden
+            >
+              {representativeBadge.icon}
+            </span>
+            <span className="text-base font-bold text-[#FF5C00] text-center leading-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+              {representativeBadge.title}
+            </span>
+          </>
         ) : (
-          <span className="text-2xl" aria-hidden>
-            🦊
-          </span>
+          <>
+            <span
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 text-2xl font-bold"
+              aria-hidden
+            >
+              !
+            </span>
+            <span className="text-base font-bold text-gray-600 text-center leading-tight whitespace-nowrap">
+              배지를 모아봐요!
+            </span>
+          </>
         )}
-      </span>
+      </div>
     </header>
   );
 }

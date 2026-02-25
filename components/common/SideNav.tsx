@@ -49,44 +49,39 @@ export default function SideNav() {
       role="navigation"
       aria-label="좌측 메뉴"
     >
-      {/* 헤더: [햄버거 - 또독] flex-row items-center / 접힘 시 텍스트 숨김, 버튼만 가로 중앙 */}
+      {/* 헤더: 높이·하단 보더 고정. 접힘 시 로고는 opacity-0 + absolute로 공간 미점유, 버튼만 중앙 */}
       <div
-        className={`shrink-0 flex flex-row items-center w-full border-b border-gray-100 mb-8 ${
-          collapsed ? "justify-center py-4 px-0" : "justify-start gap-4 pt-4 pb-4 px-4"
+        className={`shrink-0 flex flex-row items-center w-full border-b border-gray-100 mb-8 min-h-14 h-14 relative ${
+          collapsed ? "px-0" : "px-4"
         }`}
       >
-        {collapsed ? (
-          <div className="flex items-center justify-center w-10 h-10 shrink-0">
-            <button
-              type="button"
-              onClick={toggle}
-              className="flex items-center justify-center w-6 h-6 rounded-lg text-[#FF5C00] hover:bg-orange-50 transition-colors"
-              aria-label="사이드바 펼치기"
-            >
-              <MenuIcon className="w-6 h-6" />
-            </button>
-          </div>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={toggle}
-              className="hidden md:flex items-center justify-center w-6 h-6 rounded-lg text-[#FF5C00] hover:bg-orange-50 transition-colors shrink-0"
-              aria-label="사이드바 접기"
-            >
-              <MenuIcon className="w-6 h-6" />
-            </button>
-            <Link
-              href="/"
-              className="font-extrabold text-xl tracking-tight whitespace-nowrap min-w-0"
-              style={{ color: ORANGE }}
-              aria-label="또독 홈"
-              title="또독"
-            >
-              또독
-            </Link>
-          </>
-        )}
+        <div
+          className={`flex flex-row items-center w-full h-full shrink-0 ${
+            collapsed ? "justify-center" : "justify-start gap-4"
+          }`}
+        >
+          <button
+            type="button"
+            onClick={toggle}
+            className="flex items-center justify-center w-6 h-6 rounded-lg text-[#FF5C00] hover:bg-orange-50 transition-colors shrink-0"
+            aria-label={collapsed ? "사이드바 펼치기" : "사이드바 접기"}
+          >
+            <MenuIcon className="w-6 h-6 shrink-0" />
+          </button>
+          <Link
+            href="/"
+            className={`font-extrabold text-xl tracking-tight whitespace-nowrap shrink-0 ${
+              collapsed
+                ? "absolute left-0 top-0 opacity-0 pointer-events-none w-0 h-0 overflow-hidden"
+                : "min-w-0"
+            }`}
+            style={{ color: ORANGE }}
+            aria-label="또독 홈"
+            title="또독"
+          >
+            또독
+          </Link>
+        </div>
       </div>
 
       {/* 메뉴: 접힘 시 아이콘만 수직 일직선 중앙, 펼침 시 w-full·균일 패딩·gap-4 */}

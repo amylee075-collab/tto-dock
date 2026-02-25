@@ -1,19 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { getRandomPassageByCategory, getRandomNewsPassage } from "@/lib/data";
+import { getRandomCategoryStoryId, getRandomDigitalStoryId } from "@/lib/data";
 
 export default function FreeLearningCards() {
   const router = useRouter();
 
-  const handleCategory = (category: "science" | "history" | "society") => {
-    const passage = getRandomPassageByCategory(category);
-    router.push(`/reading/${passage.id}`);
+  const handleCategory = () => {
+    const id = getRandomCategoryStoryId();
+    router.push(`/reading/category/${id}`);
   };
 
-  const handleNews = () => {
-    const passage = getRandomNewsPassage();
-    router.push(`/reading/${passage.id}`);
+  const handleDigital = () => {
+    const id = getRandomDigitalStoryId();
+    router.push(`/reading/digital/${id}`);
   };
 
   return (
@@ -25,13 +25,8 @@ export default function FreeLearningCards() {
         <li className="min-w-0">
           <button
             type="button"
-            onClick={() => {
-              const categories = ["science", "history", "society"] as const;
-              const category =
-                categories[Math.floor(Math.random() * categories.length)];
-              handleCategory(category);
-            }}
-            className="w-full flex flex-col items-center justify-center min-h-[180px] sm:min-h-[200px] rounded-2xl border border-gray-200 bg-white p-8 hover:border-[#FF5C00]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF5C00]/30 text-left"
+            onClick={handleCategory}
+            className="w-full flex flex-col items-center justify-center min-h-[180px] sm:min-h-[200px] rounded-2xl border border-gray-200 bg-white p-8 hover:border-[#ff5700]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff5700]/30 text-left"
           >
             <span
               className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-xl bg-[#fff5f0] text-3xl sm:text-4xl mb-4"
@@ -43,15 +38,15 @@ export default function FreeLearningCards() {
               분야별 글 읽기
             </span>
             <span className="text-base text-gray-500 font-medium mt-2 text-center">
-              과학 / 역사 / 사회 랜덤
+              과학 / 역사 / 사회
             </span>
           </button>
         </li>
         <li className="min-w-0">
           <button
             type="button"
-            onClick={handleNews}
-            className="w-full flex flex-col items-center justify-center min-h-[180px] sm:min-h-[200px] rounded-2xl border border-gray-200 bg-white p-8 hover:border-[#FF5C00]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF5C00]/30 text-left"
+            onClick={handleDigital}
+            className="w-full flex flex-col items-center justify-center min-h-[180px] sm:min-h-[200px] rounded-2xl border border-gray-200 bg-white p-8 hover:border-[#ff5700]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff5700]/30 text-left"
           >
             <span
               className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-xl bg-[#fff5f0] text-3xl sm:text-4xl mb-4"
@@ -63,7 +58,7 @@ export default function FreeLearningCards() {
               디지털 문해력
             </span>
             <span className="text-base text-gray-500 font-medium mt-2 text-center">
-              뉴스 기사
+              신문·미디어 비판
             </span>
           </button>
         </li>

@@ -33,3 +33,31 @@ body {
 .animate-shake {
   animation: shake 0.5s ease-in-out;
 }
+
+/* 브레드크럼: 클릭 시 테두리/링 없음, hover 시 텍스트만 주황 */
+.breadcrumb-nav a:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* 문해력 기초 훈련(핵심 단어 찾기) 전용 - 이 페이지 내에서만 단어 카드 테두리 적용 */
+.core-word-practice .training-word-card {
+  display: inline;
+  border: 2px solid #E5E7EB;
+  border-radius: 12px;
+  margin: 0;
+  padding: 4px 8px; /* 모바일: py-1 px-2 텍스트 밀도 */
+}
+@media (min-width: 768px) {
+  .core-word-practice .training-word-card {
+    padding: 2px 4px;
+  }
+}
+.core-word-practice .training-word-card.selected {
+  border-color: #f97316; /* orange-500 */
+  background-color: #FFF0E5;
+}
+.core-word-practice .training-word-card.wrong {
+  border-color: #EF4444;
+  background-color: #FEE2E2;
+}

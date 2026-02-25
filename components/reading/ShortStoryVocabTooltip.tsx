@@ -2,8 +2,19 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import type { ShortStoryVocabulary } from "@/lib/data";
+
+const FALLBACK_MEANING = "준비 중인 단어입니다.";
+const FALLBACK_EXAMPLE = "준비 중입니다.";
+const BOTTOM_NAV_SAFE = 80;
+
+function getPopupMaxWidth(centerX: number): string {
+  if (typeof window === "undefined") return "85vw";
+  const w = window.innerWidth;
+  const padding = 16;
+  const maxFromCenter = 2 * Math.min(centerX, w - centerX) - padding;
+  return `min(85vw, ${Math.max(200, maxFromCenter)}px)`;
+}
 
 interface ShortStoryVocabTooltipProps {
   item: ShortStoryVocabulary;
@@ -14,92 +25,151 @@ export default function ShortStoryVocabTooltip({
   item,
   children,
 }: ShortStoryVocabTooltipProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<{ centerX: number; top: number } | null>(null);
-  const triggerRef = useRef<HTMLSpanElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const show = position !== null;
+  const displayMeaning = item?.meaning?.trim() || FALLBACK_MEANING;
+  const displayExample = item?.example?.trim() || FALLBACK_EXAMPLE;
 
   useEffect(() => {
-    if (!show) return;
-    const close = (e: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(e.target as Node))
-        setPosition(null);
-    };
-    const closeOnScroll = () => setPosition(null);
-    document.addEventListener("click", close);
-    window.addEventListener("scroll", closeOnScroll, { capture: true });
+    if (!isOpen) return;
+    document.body.style.overflow = "hidden";
     return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const close = (e: MouseEvent) => {
+      if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setPosition(null);
+      }
+    };
+    const closeOnScroll = () => {
+      setIsOpen(false);
+      setPosition(null);
+    };
+    const t = window.setTimeout(() => {
+      document.addEventListener("click", close);
+      window.addEventListener("scroll", closeOnScroll, { capture: true });
+    }, 0);
+    return () => {
+      window.clearTimeout(t);
       document.removeEventListener("click", close);
       window.removeEventListener("scroll", closeOnScroll, { capture: true });
     };
-  }, [show]);
+  }, [isOpen]);
 
-  const handleClick = (e: React.MouseEvent<HTMLSpanElement>) => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (position) {
-      setPosition(null);
-      return;
-    }
     const rect = e.currentTarget.getBoundingClientRect();
-    setPosition({
-      centerX: rect.left + rect.width / 2,
-      top: rect.top,
-    });
+    const nextOpen = !isOpen;
+    const centerX = rect.left + rect.width / 2;
+    const top = rect.top;
+    setPosition(nextOpen ? { centerX, top } : null);
+    setIsOpen(nextOpen);
+    const payload = {
+      word: item?.word ?? "",
+      meaning: displayMeaning,
+      example: displayExample,
+    };
+    console.log("[ShortStoryVocabTooltip] 선택된 단어 데이터:", payload);
   };
 
-  const tooltipPortal =
+  const popup =
     typeof document !== "undefined" &&
+    document.body &&
+    isOpen &&
+    position &&
     createPortal(
-      show && position ? (
-        <AnimatePresence>
-          <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="fixed z-[100] w-64 px-3 py-3 rounded-xl bg-[#212529] text-white text-sm shadow-lg"
-            style={{
-              left: position.centerX,
-              top: position.top - 8,
-              transform: "translate(-50%, -100%)",
+      <div
+        className="fixed z-[60] min-w-[200px] max-h-[min(70vh,400px)] overflow-y-auto whitespace-normal rounded-2xl border border-orange-200 bg-white p-5 pb-6 shadow-lg"
+        style={{
+          left: position.centerX,
+          top:
+            typeof window !== "undefined"
+              ? Math.min(position.top - 14, window.innerHeight - BOTTOM_NAV_SAFE)
+              : position.top - 14,
+          transform: "translate(-50%, -100%)",
+          maxWidth: getPopupMaxWidth(position.centerX),
+        }}
+        role="tooltip"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-lg font-bold text-[#212529] min-w-0 flex-1">{item?.word ?? children}</p>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+              setPosition(null);
             }}
-            role="tooltip"
+            className="min-h-[44px] min-w-[44px] shrink-0 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="닫기"
           >
-            <p className="font-medium text-white mb-1">{item.meaning}</p>
-            <p className="text-gray-300 text-xs leading-relaxed">
-              예: {item.example}
-            </p>
-          </motion.div>
-        </AnimatePresence>
-      ) : null,
+            ✕
+          </button>
+        </div>
+        <p className="mt-1.5 text-xl leading-relaxed font-medium text-gray-700">
+          {displayMeaning}
+        </p>
+        <p className="mt-1.5 text-[1.05rem] leading-relaxed text-orange-700/90">
+          예: {displayExample}
+        </p>
+        <span
+          className="absolute left-1/2 -translate-x-1/2 translate-y-full border-[6px] border-transparent border-t-orange-200"
+          aria-hidden
+        />
+        <span
+          className="absolute left-1/2 -translate-x-1/2 translate-y-[calc(100%-1px)] border-[5px] border-transparent border-t-white"
+          aria-hidden
+        />
+      </div>,
       document.body
     );
 
   return (
     <>
-      <span ref={triggerRef} className="relative inline">
-        <span
-          role="button"
-          tabIndex={0}
+      <span className="relative z-10 inline" style={{ pointerEvents: "auto" }}>
+        <button
+          ref={triggerRef}
+          type="button"
           onClick={handleClick}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
+              e.stopPropagation();
               if (triggerRef.current) {
                 const rect = triggerRef.current.getBoundingClientRect();
-                setPosition((p) =>
-                  p ? null : { centerX: rect.left + rect.width / 2, top: rect.top }
+                const nextOpen = !isOpen;
+                setPosition(
+                  nextOpen
+                    ? {
+                        centerX: rect.left + rect.width / 2,
+                        top: rect.top,
+                      }
+                    : null
                 );
+                setIsOpen(nextOpen);
+                console.log("[ShortStoryVocabTooltip] 선택된 단어 데이터:", {
+                  word: item?.word ?? "",
+                  meaning: displayMeaning,
+                  example: displayExample,
+                });
               }
             }
           }}
-          className="border-b-2 border-[#ff5700] cursor-help font-medium text-[#ff5700]/90 hover:text-[#ff5700]"
+          className="cursor-pointer border-b-2 border-[#ff5700] font-medium text-[#ff5700]/90 hover:text-[#ff5700]"
+          style={{ cursor: "pointer", pointerEvents: "auto" }}
         >
           {children}
-        </span>
+        </button>
       </span>
-      {tooltipPortal}
+      {popup}
     </>
   );
 }

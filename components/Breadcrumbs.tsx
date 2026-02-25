@@ -9,7 +9,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   reading: "또독 읽기",
   short: "짧은 글 읽기",
   long: "긴 글 읽기",
-  category: "분야별 글",
+  category: "분야별 글 읽기",
   digital: "디지털 문해력",
   practice: "문해력 기초 훈련",
   "core-word": "문해력 기초 훈련",
@@ -20,13 +20,10 @@ function getSegmentLabel(segment: string): string {
   return SEGMENT_LABELS[segment] ?? segment;
 }
 
-/** 경로 구분자: ChevronRight 스타일 (>) */
+/** 경로 구분자 (>) */
 function Separator() {
   return (
-    <span
-      className="mx-1.5 text-gray-400 select-none"
-      aria-hidden
-    >
+    <span className="text-gray-400 select-none" aria-hidden>
       &gt;
     </span>
   );
@@ -64,18 +61,18 @@ export default function Breadcrumbs() {
   return (
     <nav
       aria-label="브레드크럼"
-      className="text-sm text-gray-500 mt-4 mb-2"
+      className="breadcrumb-nav sticky top-0 z-10 bg-white pt-4 pb-2 mb-2 text-sm text-gray-500 border-b border-gray-100"
     >
-      <ol className="flex flex-wrap items-center gap-0">
+      <ol className="flex flex-wrap items-center gap-2">
         {items.map((item, index) => (
-          <li key={item.href} className="flex items-center gap-0">
+          <li key={item.href} className="flex items-center gap-2">
             {index > 0 && <Separator />}
             {item.isLast ? (
               <span className="text-gray-700 font-medium">{item.label}</span>
             ) : (
               <Link
                 href={item.href}
-                className="text-gray-500 hover:text-[#FF5C00] transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF5C00]/30 rounded"
+                className="text-gray-500 hover:text-[#ff5700] transition-colors focus:outline-none border-0 outline-none ring-0 focus:ring-0"
               >
                 {item.label}
               </Link>

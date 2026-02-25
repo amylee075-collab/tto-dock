@@ -20,9 +20,14 @@ const statusMessage: Record<WPMTier, string> = {
   빠름: "속도를 조절해 보아요",
 };
 
+const WPM_ZERO_MESSAGE =
+  "학습을 시작해서 나의 읽기 속도를 확인해 보세요!";
+
 export default function SpeedChart({ averageWpm }: SpeedChartProps) {
   const tier = getWPMTier(averageWpm);
   const percent = wpmToPercent(averageWpm);
+  const isZero = averageWpm === 0;
+  const message = isZero ? WPM_ZERO_MESSAGE : statusMessage[tier];
 
   return (
     <section className="w-full min-w-0 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm mb-8 overflow-hidden">
@@ -40,7 +45,7 @@ export default function SpeedChart({ averageWpm }: SpeedChartProps) {
         />
       </div>
       <p className="mt-3 font-bold text-[#212529] text-lg">
-        {statusMessage[tier]}
+        {message}
       </p>
     </section>
   );

@@ -47,7 +47,7 @@ export default function SummaryCards({
         >
           <p className="text-sm font-medium text-gray-500 mb-2">{label}</p>
           <p className="font-extrabold text-2xl text-[#212529]">{value}</p>
-          {key === "speed" && (
+          {key === "speed" && averageWpm > 0 && (
             <span
               className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${tierBadgeStyle[readingTier]}`}
             >

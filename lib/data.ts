@@ -387,6 +387,12 @@ export interface ShortStory {
   vocabulary: ShortStoryVocabulary[];
   coreQuiz: ShortStoryCoreQuiz;
   readQuizzes: ShortStoryReadQuiz[];
+  /** 홈/목록 카드용 뱃지 (예: ["과학"], ["쉬움], ["짧은 글"]) */
+  badges?: string[];
+  /** 분야별용: 과학 | 역사 | 사회 */
+  section?: "과학" | "역사" | "사회";
+  /** 디지털 문해력용: 신문기사 | 미디어 비판 등 */
+  format?: string;
 }
 
 /** 짧은 글: 여우 누이, 토끼와 호랑이, 임금님 귀는 당나귀 귀 */
@@ -509,7 +515,7 @@ export const longStories: ShortStory[] = [
   {
     id: "giving-tree",
     title: "아낌없이 주는 나무 (Shel Silverstein)",
-    thumbnail: "/images/giving_tree.svg",
+    thumbnail: "/images/giving_tree.png",
     content: `옛날 어느 곳에 커다란 나무 한 그루가 있었습니다. 그리고 그 나무에게는 자신이 무척 사랑하는 소년이 한 명 있었습니다. 소년은 매일 나무를 찾아와 떨어지는 나뭇잎을 모아 왕관을 만들어 쓰고 숲속의 왕이 되어 놀았습니다. 나무줄기를 타고 올라가 가지에 매달려 그네도 타고, 달콤한 사과도 따 먹었지요. 소년과 나무는 숨바꼭질을 하며 행복한 시간을 보냈고, 소년이 지치면 나무는 기꺼이 자신의 그늘을 내어주어 낮잠을 자게 했습니다. 소년은 나무를 진심으로 사랑했고, 나무는 더할 나위 없이 행복했습니다.
 
 하지만 세월이 흘러 소년이 나이를 먹으면서 나무는 홀로 있는 시간이 많아졌습니다. 어느 날, 청년이 되어 돌아온 소년에게 나무는 예전처럼 함께 놀자고 제안했습니다. 그러나 소년은 "난 이제 놀기에는 너무 커버렸어. 사고 싶은 게 많아서 돈이 필요해."라고 말했습니다. 나무는 "나에겐 돈이 없지만, 내 사과를 모두 따다가 시장에 팔렴."이라며 자신의 열매를 내어주었습니다. 소년은 사과를 모두 따서 떠나버렸고, 나무는 행복했습니다.
@@ -539,7 +545,7 @@ export const longStories: ShortStory[] = [
   {
     id: "animal-farm",
     title: "동물 농장 (George Orwell)",
-    thumbnail: "/images/animal_farm.svg",
+    thumbnail: "/images/animal_farm.png",
     content: `영국의 '메이너 농장'에 사는 동물들은 인간 주인의 보살핌 소홀과 매질에 지쳐 있었습니다. 그러던 어느 날, 늙은 돼지 '메이저'가 동물들에게 인간을 몰아내고 우리만의 세상을 만들자는 '혁명'의 씨앗을 심어 주었습니다. 얼마 뒤, 배고픔을 참지 못한 동물들은 주인을 쫓아내고 농장 이름을 '동물 농장'으로 바꿨습니다.
 
 동물들은 "모든 동물은 평등하다"라는 원칙을 세우고, 열심히 일하면 모두가 잘살 수 있다는 희망을 품었습니다. 글을 깨우친 돼지들이 지도자가 되었고, 그중에서도 똑똑한 스노볼과 힘 있는 나폴레옹이 앞장섰습니다. 스노볼은 동물들의 생활을 편하게 해 줄 '풍차'를 지으려 했지만, 권력을 탐낸 나폴레옹은 사나운 개들을 앞세워 스노볼을 내쫓고 독재를 시작했습니다.
@@ -569,7 +575,7 @@ export const longStories: ShortStory[] = [
   {
     id: "yangbanjeon",
     title: "양반전 (박지원)",
-    thumbnail: "/images/yangbanjeon.svg",
+    thumbnail: "/images/yangbanjeon.png",
     content: `옛날 강원도 정선에 한 양반이 살고 있었습니다. 그는 공부를 좋아하고 인품이 훌륭하여 고을 군수조차 그를 존경했지요. 하지만 집이 너무 가난해 나라에서 빌린 곡식인 '환곡'이 어느새 천 석이나 쌓이고 말았습니다. 이 소식을 들은 관찰사는 양반을 감옥에 가두라고 명령했습니다. 이때 마을에 사는 돈 많은 부자가 이 소식을 들었습니다. 부자는 돈은 많았지만 신분이 낮아 늘 무시당하는 것이 한이었기에, 양반 대신 곡식을 모두 갚아 주고 그 대가로 양반 신분을 사기로 했습니다.
 
 군수는 증인이 되어 양반을 사고파는 계약서인 '권문'을 작성했습니다. 첫 번째 계약서에는 양반이 지켜야 할 까다로운 체면과 예절이 가득했습니다. "새벽같이 일어나 책을 읽어야 한다", "더워도 버선을 벗지 마라" 등 겉치레뿐인 내용이었지요. 부자는 이 내용을 듣고 "양반이란 것이 이렇게 따분한 것입니까?"라며 실망했습니다.
@@ -596,8 +602,214 @@ export const longStories: ShortStory[] = [
   },
 ];
 
+/** 분야별: 과학 / 역사 / 사회 (쉬운 글·어려운 글) */
+export const categoryStories: ShortStory[] = [
+  {
+    id: "science-photosynthesis",
+    title: "식물의 광합성",
+    thumbnail: "/images/science-photosynthesis.png",
+    content: `식물은 동물처럼 입으로 음식을 먹지 않아요. 대신 잎에서 스스로 양분을 만듭니다. 이 과정을 '광합성'이라고 해요. 광합성을 하려면 햇빛, 물, 그리고 공기 중의 이산화탄소가 필요해요. 식물은 뿌리로 물을 흡수하고, 잎의 작은 구멍으로 공기를 들이마셔요. 햇빛을 받으면 이 재료들을 섞어 식물이 자라는 데 필요한 설탕 같은 양분을 만들고, 우리가 숨 쉴 때 필요한 산소를 밖으로 내보낸답니다.`,
+    section: "과학",
+    badges: ["과학", "쉬움"],
+    vocabulary: [
+      { word: "광합성", meaning: "식물이 햇빛·물·이산화탄소로 양분을 만드는 과정.", example: "식물은 잎에서 광합성을 해요." },
+      { word: "양분", meaning: "생명체가 자라거나 살아가는 데 필요한 영양분.", example: "광합성으로 만든 양분으로 식물이 자라요." },
+      { word: "흡수", meaning: "빨아들여 받아들임.", example: "식물은 뿌리로 물을 흡수해요." },
+      { word: "산소", meaning: "숨 쉴 때 필요한 기체.", example: "식물이 광합성 후 산소를 내보내요." },
+    ],
+    coreQuiz: { question: "식물이 광합성을 마친 후, 사람과 동물이 숨을 쉴 수 있게 밖으로 내보내는 기체는 무엇인가요?", answer: "산소" },
+    readQuizzes: [
+      { q: "식물이 광합성을 마친 후, 사람과 동물이 숨을 쉴 수 있게 밖으로 내보내는 기체는 무엇인가요?", options: ["이산화탄소", "산소", "질소", "수소"], ans: 1 },
+    ],
+  },
+  {
+    id: "science-earthquake",
+    title: "지표의 변화와 지진",
+    thumbnail: "/images/science-earthquake.png",
+    content: `우리가 딛고 서 있는 땅은 멈춰 있는 것 같지만, 사실 아주 조금씩 움직이고 있습니다. 지구의 겉 부분은 여러 개의 커다란 판으로 이루어져 있는데, 이 판들이 서로 밀거나 당기면서 엄청난 에너지가 쌓이게 됩니다. 그러다 땅이 이 힘을 견디지 못하고 갑자기 끊어지거나 어긋날 때 땅이 흔들리는 '지진'이 발생합니다. 지진은 건물을 무너뜨리거나 바닷물을 끌어올려 큰 파도를 만들기도 합니다. 최근에는 지진을 미리 예측하기 위해 지각의 미세한 움직임을 관찰하는 기술이 발전하고 있습니다. 지진이 발생했을 때는 당황하지 말고 머리를 보호하며 넓은 공터로 대피하는 것이 중요합니다.`,
+    section: "과학",
+    badges: ["과학", "어려움"],
+    vocabulary: [
+      { word: "지표", meaning: "지구의 겉면, 땅의 표면.", example: "지표가 흔들리면 지진이에요." },
+      { word: "에너지", meaning: "일을 할 수 있는 힘.", example: "판이 움직이며 에너지가 쌓여요." },
+      { word: "예측", meaning: "앞일을 미리 짐작함.", example: "지진 예측 기술이 발달했어요." },
+      { word: "지각", meaning: "지구의 겉을 이루는 단단한 층.", example: "지각의 움직임을 관찰해요." },
+      { word: "대피", meaning: "위험한 곳에서 안전한 곳으로 옮김.", example: "지진 시 넓은 공터로 대피해요." },
+    ],
+    coreQuiz: { question: "지진이 발생하는 근본적인 원인은 무엇인가요?", answer: "판들이 움직이며 쌓인 에너지가 갑자기 방출되기 때문" },
+    readQuizzes: [
+      { q: "본문의 내용으로 보아 지진이 발생하는 근본적인 원인은 무엇인가요?", options: ["지구 내부의 온도가 갑자기 낮아지기 때문에", "판들이 움직이며 쌓인 에너지가 갑자기 방출되기 때문에", "태풍이 불어 바닷물이 육지로 밀려오기 때문에", "사람들이 지하 자원을 너무 많이 파냈기 때문에"], ans: 1 },
+    ],
+  },
+  {
+    id: "history-sejong",
+    title: "세종대왕과 훈민정음",
+    thumbnail: "/images/history-sejong.webp",
+    content: `조선 시대의 세종대왕은 백성들을 무척 사랑하셨어요. 당시에는 우리말은 있었지만 글자가 없어서 어려운 한자를 빌려 썼는데, 글을 배우지 못한 백성들은 억울한 일을 당해도 호소할 방법이 없었지요. 세종대왕은 누구나 쉽게 배우고 쓸 수 있는 우리 글자인 '훈민정음'을 만드셨어요. 훈민정음은 '백성을 가르치는 바른 소리'라는 뜻이에요. 덕분에 오늘날 우리는 한글이라는 훌륭한 글자를 가지게 되었답니다.`,
+    section: "역사",
+    badges: ["역사", "쉬움"],
+    vocabulary: [
+      { word: "훈민정음", meaning: "백성을 가르치는 바른 소리, 한글의 옛 이름.", example: "세종대왕이 훈민정음을 창제하셨어요." },
+      { word: "호소", meaning: "억울하거나 어려울 때 도움을 청함.", example: "백성들은 호소할 방법이 없었어요." },
+      { word: "백성", meaning: "나라의 일반 사람들.", example: "세종대왕은 백성을 사랑하셨어요." },
+      { word: "창제", meaning: "처음으로 글자나 말을 만듦.", example: "훈민정음은 1443년에 창제되었어요." },
+    ],
+    coreQuiz: { question: "'훈민정음'이라는 이름에 담긴 뜻은 무엇인가요?", answer: "백성을 가르치는 바른 소리" },
+    readQuizzes: [
+      { q: "'훈민정음'이라는 이름에 담긴 뜻은 무엇인가요?", options: ["임금이 쓰는 귀한 글자", "백성을 가르치는 바른 소리", "중국 한자를 쉽게 바꾸는 법", "세계에서 가장 오래된 글자"], ans: 1 },
+    ],
+  },
+  {
+    id: "history-ganghwa",
+    title: "강화도 조약과 근대화",
+    thumbnail: "/images/history-ganghwa.webp",
+    content: `조선 후기, 서양의 여러 나라가 문을 열 것을 요구하며 한반도로 다가왔습니다. 조선은 처음에는 교류를 거절했지만, 1876년 일본의 강요로 우리나라 최초의 근대적 조약인 '강화도 조약'을 맺게 되었습니다. 이 조약은 우리나라가 세계로 문을 여는 계기가 되었지만, 일본에만 유리한 내용이 담긴 '불평등 조약'이었습니다. 이후 조선에는 전등, 기차, 우체국 같은 근대 문물이 들어오기 시작했습니다. 하지만 외국의 힘에 의존하게 되면서 나라의 주권을 지키기 위한 많은 독립운동가의 노력이 이어지게 되었습니다.`,
+    section: "역사",
+    badges: ["역사", "어려움"],
+    vocabulary: [
+      { word: "근대적", meaning: "현대에 가까운 시대의 방식.", example: "강화도 조약은 근대적 조약이에요." },
+      { word: "조약", meaning: "나라와 나라 사이에 맺는 약속.", example: "강화도 조약은 1876년에 맺어졌어요." },
+      { word: "불평등", meaning: "한쪽만 유리하고 공정하지 않음.", example: "강화도 조약은 불평등 조약이었어요." },
+      { word: "문물", meaning: "문명과 문화의 산물.", example: "전등, 기차 같은 근대 문물이 들어왔어요." },
+      { word: "주권", meaning: "나라가 스스로를 다스리는 권리.", example: "주권을 지키기 위해 독립운동이 일어났어요." },
+    ],
+    coreQuiz: { question: "강화도 조약에 대한 설명으로 맞는 것은?", answer: "우리나라 최초의 근대적 조약이지만 일본에 유리한 불평등 조약이었다" },
+    readQuizzes: [
+      { q: "강화도 조약에 대한 설명 중 본문의 내용과 일치하는 것은 무엇인가요?", options: ["조선이 먼저 일본에 제안하여 맺은 공정한 조약이다.", "우리나라 최초의 근대적 조약이지만 일본에 유리한 불평등 조약이었다.", "조약 이후 서양 문물의 유입이 완전히 차단되었다.", "일본의 도움을 받아 조선이 세계에서 가장 부유한 나라가 되었다."], ans: 1 },
+    ],
+  },
+  {
+    id: "society-scarcity",
+    title: "희소성과 합리적 선택",
+    thumbnail: "/images/society-scarcity.webp",
+    content: `우리는 매일 선택을 하며 살아요. 아이스크림을 먹을지 떡볶이를 먹을지 고민하는 이유는 우리가 가진 돈과 시간은 정해져 있기 때문이에요. 세상에 있는 자원은 한정되어 있는데 사람들의 욕심은 끝이 없는 현상을 '희소성'이라고 해요. 희소성 때문에 우리는 가장 가치 있는 것을 고르는 '합리적 선택'을 해야 합니다.`,
+    section: "사회",
+    badges: ["사회", "쉬움"],
+    vocabulary: [
+      { word: "자원", meaning: "쓰거나 쓸 수 있는 재료·돈·시간 등.", example: "세상의 자원은 한정되어 있어요." },
+      { word: "한정", meaning: "일정한 한도가 있음.", example: "시간과 돈은 한정되어 있어요." },
+      { word: "희소성", meaning: "자원은 한정되어 있는데 욕구는 끝이 없는 현상.", example: "희소성 때문에 선택을 해야 해요." },
+      { word: "합리적", meaning: "이치에 맞고 논리적임.", example: "합리적 선택을 하려고 해요." },
+    ],
+    coreQuiz: { question: "자원은 한정되어 있는데 욕구는 끝이 없는 현상을 무엇이라 하나요?", answer: "희소성" },
+    readQuizzes: [
+      { q: "사람들의 욕구는 끝이 없으나 세상에 있는 자원은 한정되어 있는 현상을 무엇이라 하나요?", options: ["풍요성", "다양성", "희소성", "필요성"], ans: 2 },
+    ],
+  },
+  {
+    id: "society-democracy",
+    title: "민주주의와 선거",
+    thumbnail: "/images/society-democracy.webp",
+    content: `민주주의 사회에서 국민의 뜻을 한데 모으는 가장 중요한 방법은 바로 '선거'입니다. 선거는 우리를 대신하여 나라의 일을 맡아 할 대표자를 뽑는 과정입니다. 민주 선거에는 네 가지 기본 원칙이 있습니다. 누구나 만 18세가 되면 투표할 수 있는 '보통 선거', 성별이나 재산에 상관없이 똑같이 한 표씩 행사하는 '평등 선거', 자신이 누구에게 투표했는지 남이 알지 못하게 하는 '비밀 선거', 그리고 대리인을 거치지 않고 본인이 직접 투표하는 '직접 선거'가 그것입니다.`,
+    section: "사회",
+    badges: ["사회", "어려움"],
+    vocabulary: [
+      { word: "민주주의", meaning: "국민이 나라의 주인이 되는 정치 방식.", example: "민주주의에서 선거가 중요해요." },
+      { word: "대표자", meaning: "여럿을 대신하여 말하거나 일하는 사람.", example: "선거로 대표자를 뽑아요." },
+      { word: "원칙", meaning: "지켜야 할 기본 규칙.", example: "민주 선거의 네 가지 원칙이 있어요." },
+      { word: "행사", meaning: "권리나 힘을 쓰다.", example: "한 표씩 행사하는 평등 선거예요." },
+      { word: "정당한", meaning: "도리에 맞고 올바름.", example: "정당한 절차로 선거를 해요." },
+    ],
+    coreQuiz: { question: "민주 선거의 4대 원칙 중 '보통 선거'는 무엇인가요?", answer: "일정한 나이가 되면 누구나 투표할 수 있는 것" },
+    readQuizzes: [
+      { q: "다음 중 민주 선거의 4대 원칙과 그 설명이 바르게 연결된 것은 무엇인가요?", options: ["비밀 선거 - 부자나 가난한 사람이나 똑같이 한 표를 주는 것", "직접 선거 - 부모님이 나 대신 투표해 주는 것", "보통 선거 - 일정한 나이가 되면 누구나 투표할 수 있는 것", "평등 선거 - 자신이 누구에게 투표했는지 남에게 말하는 것"], ans: 2 },
+    ],
+  },
+];
+
+/** 디지털 문해력 */
+export const digitalLiteracy: ShortStory[] = [
+  {
+    id: "digital-plastic",
+    title: "플라스틱 줄이기 캠페인",
+    thumbnail: "/images/digital-plastic.webp",
+    content: `최근 바다 동물의 뱃속에서 플라스틱 쓰레기가 발견되었다는 뉴스가 자주 들려옵니다. 우리가 무심코 버린 빨대와 비닐봉지가 수백 년 동안 썩지 않고 바다를 오염시키고 있습니다. 이에 따라 많은 카페에서 종이 빨대를 사용하고, 마트에서는 일회용 봉투 대신 장바구니 사용을 권장하고 있습니다. 환경 전문가는 "플라스틱 사용을 줄이는 것은 이제 선택이 아닌 지구를 지키기 위한 필수 과제"라고 강조했습니다.`,
+    format: "신문기사",
+    badges: ["디지털", "신문기사"],
+    vocabulary: [
+      { word: "권장", meaning: "하라고 추천하거나 말함.", example: "마트에서 장바구니 사용을 권장해요." },
+      { word: "오염", meaning: "더럽혀져 해로워짐.", example: "바다를 오염시키지 맙시다." },
+      { word: "일회용", meaning: "한 번 쓰고 버리는.", example: "일회용 봉투 대신 장바구니를 써요." },
+      { word: "필수", meaning: "꼭 있어야 하는.", example: "플라스틱 줄이기는 필수 과제예요." },
+    ],
+    coreQuiz: { question: "환경 오염을 막기 위해 마트에서 권장하는 실천 방법은?", answer: "장바구니 사용하기" },
+    readQuizzes: [
+      { q: "기사에서 환경 오염을 막기 위해 마트에서 권장하는 실천 방법은 무엇인가요?", options: ["종이 빨대 사용하기", "일회용 봉투 많이 사기", "장바구니 사용하기", "음식물 쓰레기 줄이기"], ans: 2 },
+    ],
+  },
+  {
+    id: "digital-fakenews",
+    title: "가짜 뉴스 판별하기",
+    thumbnail: "/images/digital-fakenews.webp",
+    content: `인터넷과 SNS에는 매일 엄청난 정보가 올라옵니다. 하지만 그중에는 사람들을 속이기 위해 만든 '가짜 뉴스'가 섞여 있어요. 가짜 뉴스는 자극적인 제목으로 우리의 눈길을 끌지만, 근거가 부족하거나 지어낸 이야기인 경우가 많습니다. 정보를 믿기 전에 먼저 누가 쓴 글인지 확인하고, 다른 언론사에서도 같은 내용을 보도했는지 비교해 봐야 합니다. 비판적으로 생각하는 습관이 우리를 가짜 뉴스에서 지켜줍니다.`,
+    format: "미디어 비판",
+    badges: ["디지털", "미디어 비판"],
+    vocabulary: [
+      { word: "SNS", meaning: "소셜 네트워크 서비스, 사람들이 소통하는 인터넷 공간.", example: "SNS에 많은 정보가 올라와요." },
+      { word: "자극적", meaning: "감정이나 관심을 크게 일으키는.", example: "자극적인 제목에 속지 마세요." },
+      { word: "근거", meaning: "말이나 주장의 바탕이 되는 자료.", example: "근거가 부족한 글은 의심해 보세요." },
+      { word: "비판적", meaning: "옳고 그름을 따져 생각하는.", example: "비판적으로 읽는 습관이 중요해요." },
+    ],
+    coreQuiz: { question: "가짜 뉴스에 속지 않기 위한 올바른 태도는?", answer: "다른 기사와 비교하며 비판적으로 확인한다" },
+    readQuizzes: [
+      { q: "가짜 뉴스에 속지 않기 위해 정보를 받아들이는 올바른 태도는 무엇인가요?", options: ["자극적인 제목만 보고 믿는다.", "다른 기사와 비교하며 비판적으로 확인한다.", "가장 먼저 올라온 뉴스를 무조건 믿는다.", "친구가 보내준 정보는 확인 없이 공유한다."], ans: 1 },
+    ],
+  },
+];
+
+/** 홈 '오늘의 추천 글'용: short + category + digital 통합 목록 (source로 경로 구분) */
+export type StorySource = "short" | "category" | "digital";
+
+export interface StoryForHome {
+  story: ShortStory;
+  source: StorySource;
+  href: string;
+}
+
+export function getAllStoriesForHome(): StoryForHome[] {
+  const short: StoryForHome[] = shortStories.map((s) => ({
+    story: { ...s, badges: [...(s.badges ?? []), "짧은 글"] },
+    source: "short",
+    href: `/reading/short/${s.id}`,
+  }));
+  const category: StoryForHome[] = categoryStories.map((s) => ({
+    story: s,
+    source: "category",
+    href: `/reading/category/${s.id}`,
+  }));
+  const digital: StoryForHome[] = digitalLiteracy.map((s) => ({
+    story: s,
+    source: "digital",
+    href: `/reading/digital/${s.id}`,
+  }));
+  return [...short, ...category, ...digital];
+}
+
+export function getRandomStoryForHome(): StoryForHome {
+  const all = getAllStoriesForHome();
+  return all[Math.floor(Math.random() * all.length)]!;
+}
+
 export const getShortStoryById = (id: string): ShortStory | undefined =>
   shortStories.find((s) => s.id === id);
 
 export const getLongStoryById = (id: string): ShortStory | undefined =>
   longStories.find((s) => s.id === id);
+
+export const getCategoryStoryById = (id: string): ShortStory | undefined =>
+  categoryStories.find((s) => s.id === id);
+
+export const getDigitalStoryById = (id: string): ShortStory | undefined =>
+  digitalLiteracy.find((s) => s.id === id);
+
+/** 분야별 글 읽기 카드 클릭 시 랜덤 1편 id */
+export function getRandomCategoryStoryId(): string {
+  const story = categoryStories[Math.floor(Math.random() * categoryStories.length)];
+  return story?.id ?? categoryStories[0]!.id;
+}
+
+/** 디지털 문해력 카드 클릭 시 랜덤 1편 id */
+export function getRandomDigitalStoryId(): string {
+  const story = digitalLiteracy[Math.floor(Math.random() * digitalLiteracy.length)];
+  return story?.id ?? digitalLiteracy[0]!.id;
+}

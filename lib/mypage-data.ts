@@ -32,11 +32,55 @@ export const goodFeedbackItems = [
   "문장 이해도가 좋아지고 있어요",
 ];
 
-/** 더 노력해봐요 항목 */
+/** 더 노력해봐요 항목 (폴백용) */
 export const improveFeedbackItems = [
   "퀴즈 정답률을 90%까지 올려봐요",
   "매일 10분씩 읽기 습관을 이어가요",
 ];
+
+/** 학습 통계 기반 맞춤 피드백 생성 */
+export function getFeedbackFromStats(stats: {
+  totalSentencesRead: number;
+  todayAccuracy: number;
+  averageWpm: number;
+  streakDays: number;
+}): { goodItems: string[]; improveItems: string[] } {
+  const goodItems: string[] = [];
+  const improveItems: string[] = [];
+  const { totalSentencesRead, todayAccuracy, averageWpm, streakDays } = stats;
+
+  if (averageWpm > 0 && averageWpm >= 80 && averageWpm <= 150) {
+    goodItems.push("꼼꼼한 읽기 속도를 유지하고 있어요");
+  } else if (averageWpm > 150) {
+    improveItems.push("속도를 조절해 보아요");
+  } else if (averageWpm > 0 && averageWpm < 80) {
+    improveItems.push("읽기 속도를 조금 올려보세요");
+  }
+
+  if (totalSentencesRead >= 10) {
+    goodItems.push("꾸준히 읽고 있어요");
+  } else if (totalSentencesRead > 0) {
+    improveItems.push("조금 더 읽어보면 좋아요");
+  }
+
+  if (stats.todayAccuracy >= 80) {
+    goodItems.push("퀴즈 정답률이 좋아요");
+  } else if (stats.todayAccuracy > 0 || totalSentencesRead > 0) {
+    improveItems.push("퀴즈 정답률을 90%까지 올려봐요");
+  }
+
+  if (streakDays >= 3) {
+    goodItems.push("연속 학습 중이에요");
+  } else if (totalSentencesRead > 0) {
+    improveItems.push("매일 10분씩 읽기 습관을 이어가요");
+  }
+
+  if (goodItems.length === 0 && improveItems.length === 0 && totalSentencesRead > 0) {
+    goodItems.push("오늘도 수고했어요");
+  }
+
+  return { goodItems, improveItems };
+}
 
 /** 성취 배지 */
 export interface AchievementBadge {
