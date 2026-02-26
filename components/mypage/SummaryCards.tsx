@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { getWPMTier } from "@/lib/hooks/useWPM";
 import type { WPMTier } from "@/lib/hooks/useWPM";
 
@@ -23,7 +22,6 @@ export default function SummaryCards({
   todayAccuracy,
   totalSentencesRead,
 }: SummaryCardsProps) {
-  const [selected, setSelected] = useState<CardKey>("sentences");
   const readingTier = getWPMTier(averageWpm);
 
   const cards: { key: CardKey; label: string; value: string }[] = [
@@ -35,15 +33,9 @@ export default function SummaryCards({
   return (
     <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
       {cards.map(({ key, label, value }) => (
-        <button
+        <div
           key={key}
-          type="button"
-          onClick={() => setSelected(key)}
-          className={`w-full min-w-0 rounded-2xl border bg-white p-5 shadow-sm text-left transition-colors overflow-hidden ${
-            selected === key
-              ? "border-ttodock-orange border-2 ring-2 ring-ttodock-orange/20"
-              : "border-gray-100 hover:border-gray-200"
-          }`}
+          className="w-full min-w-0 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm text-left overflow-hidden outline-none ring-0 cursor-default"
         >
           <p className="text-sm font-medium text-gray-500 mb-2">{label}</p>
           <p className="font-extrabold text-2xl text-[#212529]">{value}</p>
@@ -54,7 +46,7 @@ export default function SummaryCards({
               {readingTier}
             </span>
           )}
-        </button>
+        </div>
       ))}
     </section>
   );

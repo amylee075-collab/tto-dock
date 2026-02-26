@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { ShortStory } from "@/lib/data";
 import { addReadingResult, addQuizResult } from "@/lib/challenge-storage";
 import ShortStoryReading from "./ShortStoryReading";
@@ -29,19 +29,29 @@ export default function ShortStoryPageClient({
 }: ShortStoryPageClientProps) {
   const [step, setStep] = useState<PageStep>("READING");
   const [resultWpm, setResultWpm] = useState(0);
+  const goingToQuizRef = useRef(false);
 
   /** 짧은 글 / 분야별 / 디지털 모두 마이페이지 챌린지에 반영 */
   const isChallengeTracked =
     source === "short" || source === "category" || source === "digital";
 
   const handleGoQuiz = useCallback(
-    (wpm: number) => {
-      if (isChallengeTracked) {
-        const sentences = countSentences(story.content);
-        addReadingResult(sentences);
+    async (wpm: number) => {
+      if (goingToQuizRef.current) return;
+      goingToQuizRef.current = true;
+      try {
+        if (isChallengeTracked) {
+          const sentences = countSentences(story.content);
+          addReadingResult(sentences);
+        }
+      } catch {
+        // 저장 실패해도 퀴즈 페이지로는 진입
       }
       setResultWpm(wpm);
       setStep("QUIZ");
+      setTimeout(() => {
+        goingToQuizRef.current = false;
+      }, 600);
     },
     [isChallengeTracked, story.content]
   );

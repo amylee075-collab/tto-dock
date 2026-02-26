@@ -28,8 +28,21 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
     passage.id
   );
 
+  const scrollMainToTop = () => {
+    const el = document.getElementById("main-scroll-area");
+    if (el) el.scrollTo({ top: 0, left: 0 });
+  };
+
   useEffect(() => {
-    if (mode === "read") window.scrollTo(0, 0);
+    scrollMainToTop();
+  }, []);
+
+  useEffect(() => {
+    if (mode === "read") {
+      scrollMainToTop();
+      const t = setTimeout(scrollMainToTop, 50);
+      return () => clearTimeout(t);
+    }
   }, [mode]);
 
   const toggleKeySentence = (i: number) => {
@@ -94,7 +107,7 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
 
   return (
     <div className="flex flex-col lg:flex-row gap-0 lg:gap-8 w-full">
-      <div className="lg:hidden order-1 w-full shrink-0">
+      <div className="lg:hidden order-1 w-full shrink-0 sticky top-0 z-20 bg-white">
         <ReadingSidebar
           wpm={wpm}
           wpmStatus={status}
@@ -104,13 +117,13 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
           asAccordion
         />
       </div>
-      <article className="flex-1 min-w-0 py-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
+      <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
         <h1 className="font-extrabold text-2xl text-[#212529] mb-1">
           {passage.title}
         </h1>
         <p className="text-sm text-gray-500 mb-8">{passage.summary}</p>
 
-        <div className="pb-20">
+        <div className="pb-[var(--reading-nav-bar-height)]">
           <div className="flex flex-col gap-y-4">
             {sentences.map((sentence, i) => {
               const isActiveSentence = activeIndex === i;

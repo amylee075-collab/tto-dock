@@ -227,21 +227,22 @@ export default function ReadingSidebar({
         <button
           type="button"
           onClick={() => setAccordionOpen((o) => !o)}
-          className="w-full flex items-center justify-between py-4 px-4 text-left font-semibold text-[#212529] hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-between gap-3 py-4 px-4 sm:px-5 text-left font-semibold text-[#212529] hover:bg-gray-50 transition-colors min-h-[3.25rem]"
           aria-expanded={accordionOpen}
         >
-          <span>학습 진행률</span>
-          <span className="text-gray-400 text-sm">
+          <span className="min-w-0 truncate">학습 진행률</span>
+          <span className="flex items-center gap-2 shrink-0 text-gray-400 text-sm tabular-nums">
             {readCount} / {totalSentences} · {elapsed}
+            <svg
+              className={`w-5 h-5 text-gray-400 transition-transform shrink-0 ${accordionOpen ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </span>
-          <svg
-            className={`w-5 h-5 text-gray-400 transition-transform ${accordionOpen ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
         </button>
         <AnimatePresence initial={false}>
           {accordionOpen && (

@@ -9,6 +9,15 @@
   --soft-orange: #fff5f0;
   --background: #ffffff;
   --foreground: #212529;
+  /* 지능형 하단 액션바: 모바일에서는 바텀 네비 바로 위에 위치 (md 이상에서 0) */
+  --reading-nav-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0));
+  /* 본문 하단 여백: 버튼 바에 가려지지 않도록 (py-3 + 버튼 높이) */
+  --reading-nav-bar-height: 4.5rem;
+}
+@media (min-width: 768px) {
+  :root {
+    --reading-nav-bottom: 0;
+  }
 }
 
 body {

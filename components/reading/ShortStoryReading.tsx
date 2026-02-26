@@ -67,12 +67,25 @@ export default function ShortStoryReading({
   );
   const isOnLastSentence = sentences.length > 0 && activeIndex === sentences.length - 1;
 
+  const scrollMainToTop = () => {
+    const el = document.getElementById("main-scroll-area");
+    if (el) el.scrollTo({ top: 0, left: 0 });
+  };
+
   useEffect(() => {
-    if (step === "READING") return;
-    window.scrollTo(0, 0);
-    const t = setTimeout(() => window.scrollTo(0, 0), 100);
+    if (step === "READING") {
+      scrollMainToTop();
+      const t = setTimeout(scrollMainToTop, 50);
+      return () => clearTimeout(t);
+    }
+    scrollMainToTop();
+    const t = setTimeout(scrollMainToTop, 100);
     return () => clearTimeout(t);
   }, [step]);
+
+  useEffect(() => {
+    scrollMainToTop();
+  }, []);
 
   const goQuizIntro = () => {
     setResultWpm(wpm);
@@ -137,8 +150,8 @@ export default function ShortStoryReading({
             transition={SLIDE.transition}
             className="flex flex-col lg:flex-row gap-0 lg:gap-8 w-full min-h-[80vh]"
           >
-            {/* 모바일: 상단 접이식 학습 진행률 */}
-            <div className="lg:hidden order-1 w-full shrink-0">
+            {/* 모바일: 상단 접이식 학습 진행률 (sticky) */}
+            <div className="lg:hidden order-1 w-full shrink-0 sticky top-0 z-20 bg-white">
               <ReadingSidebar
                 wpm={wpm}
                 wpmStatus={status}
@@ -148,9 +161,9 @@ export default function ShortStoryReading({
                 asAccordion
               />
             </div>
-            <article className="flex-1 min-w-0 py-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
+            <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
               <h1 className="font-extrabold text-2xl text-[#212529] mb-6">{title}</h1>
-              <div className="pb-20">
+              <div className="pb-[var(--reading-nav-bar-height)]">
                 <div className="flex flex-col gap-y-4">
                   {sentences.map((sentence, i) => {
                     const segments = splitSentenceByVocabulary(sentence, vocabulary);
@@ -292,7 +305,8 @@ export default function ShortStoryReading({
               <button
                 type="button"
                 onClick={goCoreQuiz}
-                className="rounded-xl px-8 py-4 font-bold text-white shadow-sm hover:opacity-90 transition-opacity bg-[#ff5700]"
+                className="min-h-[48px] rounded-xl px-8 py-4 font-bold text-white shadow-sm hover:opacity-90 transition-opacity bg-[#ff5700] active:scale-[0.98] touch-manipulation"
+                style={{ touchAction: "manipulation" }}
               >
                 퀴즈 시작
               </button>

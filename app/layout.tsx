@@ -28,8 +28,8 @@ export default function RootLayout({
           {/* LNB 제외 오른쪽 영역 = 메인 (PC에서 패딩 260px/80px 토글) */}
           <MainContentArea>
             <main className="flex-1 min-h-0 flex flex-col overflow-hidden w-full">
-              <div className="flex-1 overflow-y-auto min-h-0">
-                <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 md:pl-6 md:pr-6 lg:px-10 xl:px-12 pt-8 pb-20 md:pb-8">
+              <div id="main-scroll-area" className="flex-1 overflow-y-auto min-h-0">
+                <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 md:pl-6 md:pr-6 lg:px-10 xl:px-12 pt-8 pb-32 md:pb-8">
                   <BreadcrumbProvider>
                     <ChallengeTTLGuard />
                     <Breadcrumbs />

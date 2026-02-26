@@ -10,6 +10,9 @@ const tabs = [
   { href: "/mypage", label: "마이페이지", icon: "👤" },
 ] as const;
 
+/** 바텀 네비 높이(px): 이전/다음 버튼 바 위치 계산용 */
+export const BOTTOM_NAV_HEIGHT_REM = 3.5; // h-14
+
 export default function BottomNav() {
   const pathname = usePathname();
 
@@ -20,7 +23,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-orange-100 bg-white safe-area-pb"
+      className="fixed bottom-0 left-0 right-0 z-[100] md:hidden border-t border-orange-100 bg-white safe-area-pb shadow-[0_-2px_8px_rgba(0,0,0,0.06)]"
       role="navigation"
       aria-label="하단 메뉴"
     >
