@@ -3,27 +3,29 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import type { WPMTier } from "@/lib/hooks/useWPM";
+import type { CPMTier } from "@/lib/hooks/useCPM";
 
 interface CoachingFeedbackProps {
-  wpm: number;
-  tier: WPMTier;
+  cpm: number;
+  tier: CPMTier;
   quizCorrect: number;
   quizTotal: number;
 }
 
 function getFeedbackMessage(
-  tier: WPMTier,
+  tier: CPMTier,
   quizCorrect: number,
   quizTotal: number
 ): string {
   const rate = quizTotal > 0 ? Math.round((quizCorrect / quizTotal) * 100) : 0;
   const speedComment =
-    tier === "느림"
-      ? "꼼꼼하게 읽었어요."
-      : tier === "보통"
-        ? "적당한 속도로 잘 읽었어요."
-        : "조금만 더 천천히 읽어 보면 이해도가 올라갈 거예요.";
+    tier === "차근차근"
+      ? "꼼꼼하게 읽는 중이네요!"
+      : tier === "안정적"
+        ? "좋아요! 내용도 잘 이해하고 있나요?"
+        : tier === "빠름"
+          ? "내용을 파악하며 읽어보세요!"
+          : "주요 내용을 놓치지 않게 조심해요!";
   const quizComment =
     rate >= 80
       ? `퀴즈도 ${rate}% 맞춰서 대단해요!`
@@ -34,7 +36,7 @@ function getFeedbackMessage(
 }
 
 export default function CoachingFeedback({
-  wpm,
+  cpm,
   tier,
   quizCorrect,
   quizTotal,
@@ -49,7 +51,7 @@ export default function CoachingFeedback({
           {!avatarError ? (
             <Image
               src="/images/character.png"
-              alt="똑똑이"
+              alt="또독이"
               width={80}
               height={80}
               className="object-cover object-top"
@@ -63,7 +65,7 @@ export default function CoachingFeedback({
         </span>
         <div className="flex-1 text-center sm:text-left">
           <p className="font-bold text-[#212529] text-lg mb-2">
-            똑똑이의 코칭
+            또독이의 코칭
           </p>
           <p className="text-[#212529] font-medium leading-relaxed mb-6">
             {message}

@@ -37,8 +37,10 @@ export default function Breadcrumbs() {
   const segments = pathname.split("/").filter(Boolean);
   const depth = segments.length;
 
-  // 홈에서는 미노출, 최소 2단계 이상에서만 노출
-  if (pathname === "/" || depth < 2) return null;
+  // 홈·인증 페이지에서는 미노출
+  if (pathname === "/" || pathname.startsWith("/auth")) return null;
+  // 최소 2단계 이상에서만 노출
+  if (depth < 2) return null;
 
   const items: { href: string; label: string; isLast: boolean }[] = [];
 

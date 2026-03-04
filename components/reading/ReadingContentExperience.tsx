@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import type { ReadingContent } from "@/lib/data";
-import { useWPM } from "@/lib/hooks/useWPM";
+import { useCPM } from "@/lib/hooks/useCPM";
 import { useActiveSentence } from "@/lib/hooks/useActiveSentence";
-import { splitByVocabulary } from "@/lib/vocabulary-split";
+import type { Segment as VocabSegment, VocabItem } from "@/lib/vocabulary-split";
 import ReadingSidebar from "./ReadingSidebar";
 import ReadingNavBar from "./ReadingNavBar";
 import VocabularyTooltip from "./VocabularyTooltip";
@@ -28,7 +27,7 @@ export default function ReadingContentExperience({
   const [readingStarted, setReadingStarted] = useState(false);
 
   const { activeIndex, setActiveIndex, goNext, goPrev } = useActiveSentence(sentences.length);
-  const { wpm, status, tier, updateWPM } = useWPM(
+  const { cpm, status, tier, tierLabel, tierMessage, updateCPM } = useCPM(
     sentences,
     activeIndex,
     true,
@@ -43,7 +42,19 @@ export default function ReadingContentExperience({
 
   useEffect(() => {
     scrollMainToTop();
+    const t = setTimeout(scrollMainToTop, 80);
+    return () => clearTimeout(t);
   }, []);
+
+  const didInteractRef = useRef(false);
+  useEffect(() => {
+    if (!didInteractRef.current && !readingStarted) return;
+    didInteractRef.current = true;
+    const target = document.querySelector(`[data-sentence-index="${activeIndex}"]`);
+    if (target) {
+      (target as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [activeIndex, readingStarted]);
 
   useEffect(() => {
     if (!endSentinelRef.current || showQuiz) return;
@@ -57,71 +68,50 @@ export default function ReadingContentExperience({
     return () => ob.disconnect();
   }, [showQuiz]);
 
-  const renderSentenceWithVocabulary = (sentence: string, i: number) => {
-    const segments = vocabulary?.length
-      ? splitByVocabulary(sentence, vocabulary)
-      : [{ type: "text" as const, value: sentence }];
-    const isActive = activeIndex === i;
+  const sentenceSegments = useMemo((): VocabSegment[][] => {
+    const vocabList = (vocabulary ?? []) as VocabItem[];
+    if (!vocabList.length) {
+      return sentences.map((s) => [{ type: "text", value: s }]);
+    }
 
-    return (
-      <div key={i} className="relative">
-        {isActive && (
-          <motion.span
-            layoutId="sentence-highlight-content"
-            className="absolute left-0 top-0 bottom-0 w-1 rounded-r bg-[#ff5700]"
-            style={{ width: 4 }}
-            transition={{ type: "spring", stiffness: 400, damping: 35 }}
-            aria-hidden
-          />
-        )}
-        <motion.p
-          layout
-          role="button"
-          tabIndex={0}
-          onClick={(e) => {
-            setReadingStarted(true);
-            setActiveIndex(i);
-            (e.currentTarget as HTMLElement).scrollIntoView({
-              behavior: "smooth",
-              block: "center",
-            });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setReadingStarted(true);
-              setActiveIndex(i);
-              (e.currentTarget as HTMLElement).scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-              });
+    // 긴 단어 우선 + 첫 등장만 강조(중복 제거)
+    const sorted = [...vocabList].sort((a, b) => b.word.length - a.word.length);
+    const renderedWords = new Set<string>();
+
+    const splitFirstOnly = (sentence: string): VocabSegment[] => {
+      const segments: VocabSegment[] = [];
+      let remaining = sentence;
+
+      while (remaining.length > 0) {
+        let found = false;
+        for (const item of sorted) {
+          const idx = remaining.indexOf(item.word);
+          if (idx !== -1) {
+            if (idx > 0) segments.push({ type: "text", value: remaining.slice(0, idx) });
+
+            if (renderedWords.has(item.word)) {
+              segments.push({ type: "text", value: item.word });
+            } else {
+              segments.push({ type: "vocab", item, value: item.word });
+              renderedWords.add(item.word);
             }
-          }}
-          data-sentence-index={i}
-          className={`relative z-10 cursor-pointer text-xl md:text-[1.5rem] leading-relaxed text-[#212529] py-3 transition-[opacity,filter] duration-200 ${
-            isActive ? "pl-5 -ml-1 font-bold" : "opacity-20 blur-[1px] hover:opacity-40 hover:blur-0"
-          }`}
-          initial={false}
-          aria-current={isActive ? "true" : undefined}
-        >
-          {segments.map((seg, j) =>
-            seg.type === "text" ? (
-              <span key={j}>{seg.value}</span>
-            ) : (
-              <VocabularyTooltip
-                key={j}
-                word={seg.item.word}
-                meaning={seg.item.meaning}
-                type={seg.item.type}
-              >
-                {seg.value}
-              </VocabularyTooltip>
-            )
-          )}
-        </motion.p>
-      </div>
-    );
-  };
+
+            remaining = remaining.slice(idx + item.word.length);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          segments.push({ type: "text", value: remaining });
+          break;
+        }
+      }
+
+      return segments;
+    };
+
+    return sentences.map(splitFirstOnly);
+  }, [sentences, vocabulary]);
 
   const hasQuiz = quizzes && quizzes.length > 0;
 
@@ -129,23 +119,77 @@ export default function ReadingContentExperience({
     <div className="flex flex-col lg:flex-row gap-0 lg:gap-8 w-full">
       <div className="lg:hidden order-1 w-full shrink-0 sticky top-0 z-20 bg-white">
         <ReadingSidebar
-          wpm={wpm}
-          wpmStatus={status}
+          cpm={cpm}
           tier={tier}
+          tierLabel={tierLabel}
+          tierMessage={tierMessage}
+          cpmStatus={status}
           readCount={activeIndex + 1}
           totalSentences={sentences.length}
           asAccordion
         />
       </div>
-      <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
-        <h1 className="font-extrabold text-2xl text-[#212529] mb-2">
+      <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 w-full max-w-3xl lg:max-w-4xl">
+        <h1 className="font-reading-title font-extrabold text-2xl md:text-3xl text-[#212529] mb-6">
           {title}
         </h1>
 
         <div className="pb-[var(--reading-nav-bar-height)]">
-          <div className="flex flex-col gap-y-4">
-            {sentences.map((s, i) => renderSentenceWithVocabulary(s, i))}
-          </div>
+          <p
+            className="font-reading-content text-[#212529] select-text"
+            style={{ wordBreak: "keep-all" }}
+          >
+            {sentences.map((sentence, i) => {
+              const segments =
+                sentenceSegments[i] ?? [{ type: "text" as const, value: sentence }];
+              const isActive = activeIndex === i;
+              const isRead = i < activeIndex;
+              return (
+                <Fragment key={i}>
+                  {i > 0 && " "}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setReadingStarted(true);
+                      setActiveIndex(i);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setReadingStarted(true);
+                        setActiveIndex(i);
+                      }
+                    }}
+                    data-sentence-index={i}
+                    aria-current={isActive ? "true" : undefined}
+                    className={`cursor-pointer inline rounded-[3px] px-0.5 -mx-0.5 transition-[background-color,color,opacity] duration-300 ease-out ${
+                      isActive
+                        ? "bg-[#ff5700]/20 text-[#212529] font-semibold"
+                        : isRead
+                          ? "text-gray-400"
+                          : "text-gray-300 opacity-50"
+                    }`}
+                  >
+                    {segments.map((seg, j) =>
+                      seg.type === "text" ? (
+                        <span key={j}>{seg.value}</span>
+                      ) : (
+                        <VocabularyTooltip
+                          key={j}
+                          word={seg.item.word}
+                          meaning={seg.item.meaning}
+                          type={seg.item.type}
+                        >
+                          {seg.value}
+                        </VocabularyTooltip>
+                      )
+                    )}
+                  </span>
+                </Fragment>
+              );
+            })}
+          </p>
         </div>
 
         <div ref={endSentinelRef} className="h-20" aria-hidden />
@@ -154,29 +198,15 @@ export default function ReadingContentExperience({
           <ReadingNavBar
             onPrev={() => {
               setReadingStarted(true);
-              updateWPM();
-              const prevIndex = Math.max(activeIndex - 1, 0);
+              updateCPM();
               goPrev();
-              setTimeout(() => {
-                document.querySelector(`[data-sentence-index="${prevIndex}"]`)?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "center",
-                });
-                updateWPM();
-              }, 0);
+              updateCPM();
             }}
             onNext={() => {
               setReadingStarted(true);
-              updateWPM();
-              const nextIndex = Math.min(activeIndex + 1, sentences.length - 1);
+              updateCPM();
               goNext();
-              setTimeout(() => {
-                document.querySelector(`[data-sentence-index="${nextIndex}"]`)?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "center",
-                });
-                updateWPM();
-              }, 0);
+              updateCPM();
             }}
             hasPrev={activeIndex > 0}
             hasNext={activeIndex < sentences.length - 1}
@@ -196,7 +226,7 @@ export default function ReadingContentExperience({
 
         {quizDone && (
           <CoachingFeedback
-            wpm={wpm}
+            cpm={cpm}
             tier={tier}
             quizCorrect={quizCorrect}
             quizTotal={quizTotal}
@@ -206,9 +236,11 @@ export default function ReadingContentExperience({
 
       <div className="hidden lg:block lg:order-2 lg:shrink-0 lg:sticky lg:top-8 lg:self-start">
         <ReadingSidebar
-          wpm={wpm}
-          wpmStatus={status}
+          cpm={cpm}
           tier={tier}
+          tierLabel={tierLabel}
+          tierMessage={tierMessage}
+          cpmStatus={status}
           readCount={activeIndex + 1}
           totalSentences={sentences.length}
           className="w-full lg:w-64 lg:max-w-[16rem]"

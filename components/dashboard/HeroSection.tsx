@@ -17,7 +17,7 @@ export default function HeroSection() {
             오늘의 단어
           </h2>
           <p className="mt-2 text-[#212529] font-medium text-base">
-            똑똑이와 함께 읽기 연습을 시작해 보세요.
+            또독이와 함께 읽기 연습을 시작해 보세요.
           </p>
         </div>
         <div className="absolute top-6 right-6 sm:relative sm:top-0 sm:right-0 shrink-0">
@@ -25,7 +25,7 @@ export default function HeroSection() {
             {!avatarError ? (
               <Image
                 src="/images/character.png"
-                alt="똑똑이"
+                alt="또독이"
                 width={80}
                 height={80}
                 className="object-cover object-top"

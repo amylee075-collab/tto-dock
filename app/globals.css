@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap");
 
 :root {
   --ttodock-orange: #ff5700;
@@ -69,4 +71,26 @@ body {
 .core-word-practice .training-word-card.wrong {
   border-color: #EF4444;
   background-color: #FEE2E2;
+}
+
+/* 전역 h1: Pretendard */
+h1 {
+  font-family: "Pretendard", sans-serif;
+}
+
+/* 글 읽기 제목 전용: Pretendard */
+.font-reading-title {
+  font-family: "Pretendard", sans-serif;
+}
+
+/* 글 읽기 본문 전용: 나눔 명조 (1.5~2pt 키움, line-height 2.3) */
+.font-reading-content {
+  font-family: "Nanum Myeongjo", serif;
+  font-size: 1.375rem;
+  line-height: 2.3;
+}
+@media (min-width: 768px) {
+  .font-reading-content {
+    font-size: 1.5rem;
+  }
 }

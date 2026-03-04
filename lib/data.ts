@@ -346,7 +346,7 @@ export function getWordCount(sentence: string): number {
     .filter(Boolean).length;
 }
 
-/** 0번 ~ activeIndex 문장까지의 총 단어 수 (공백 기준). WPM 실시간 합산용 */
+/** 0번 ~ activeIndex 문장까지의 총 단어 수 (공백 기준). 레거시/호환용 */
 export function getWordsCountUntilActiveIndex(
   sentences: string[],
   activeIndex: number | null
@@ -356,6 +356,20 @@ export function getWordsCountUntilActiveIndex(
   let total = 0;
   for (let i = 0; i <= end; i++) {
     total += getWordCount(sentences[i]);
+  }
+  return total;
+}
+
+/** 0번 ~ activeIndex 문장까지의 총 글자 수. CPM(분당 글자 수) 실시간 합산용 */
+export function getCharsCountUntilActiveIndex(
+  sentences: string[],
+  activeIndex: number | null
+): number {
+  if (!sentences.length || activeIndex === null || activeIndex < 0) return 0;
+  const end = Math.min(activeIndex, sentences.length - 1);
+  let total = 0;
+  for (let i = 0; i <= end; i++) {
+    total += (sentences[i] ?? "").length;
   }
   return total;
 }
@@ -788,6 +802,45 @@ export function getAllStoriesForHome(): StoryForHome[] {
 export function getRandomStoryForHome(): StoryForHome {
   const all = getAllStoriesForHome();
   return all[Math.floor(Math.random() * all.length)]!;
+}
+
+/** 홈 '오늘의 학습' 추천 글: 긴 글 / 분야별 / 디지털 중 랜덤 1개 */
+export type RecommendedReadingType = "long" | "category" | "digital";
+
+export interface RecommendedReading {
+  type: RecommendedReadingType;
+  title: string;
+  href: string;
+  subtitle: string;
+}
+
+export function getRandomRecommendedReading(): RecommendedReading {
+  const roll = Math.floor(Math.random() * 3);
+  if (roll === 0) {
+    const first = longStories[0];
+    return {
+      type: "long",
+      title: first?.title ?? "긴 글 읽기",
+      href: "/reading/long",
+      subtitle: "본문 정독",
+    };
+  }
+  if (roll === 1) {
+    const story = categoryStories[Math.floor(Math.random() * categoryStories.length)];
+    return {
+      type: "category",
+      title: story?.title ?? "분야별 글 읽기",
+      href: story ? `/reading/category/${story.id}` : "/reading/category",
+      subtitle: "과학 / 역사 / 사회",
+    };
+  }
+  const story = digitalLiteracy[Math.floor(Math.random() * digitalLiteracy.length)];
+  return {
+    type: "digital",
+    title: story?.title ?? "디지털 문해력",
+    href: story ? `/reading/digital/${story.id}` : "/reading/digital",
+    subtitle: "신문·미디어 비판",
+  };
 }
 
 export const getShortStoryById = (id: string): ShortStory | undefined =>

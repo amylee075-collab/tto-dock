@@ -59,7 +59,7 @@ function getBadgesWithUnlocked(stats: {
         unlocked = todayAccuracy >= 80;
         break;
       case "steady-reader":
-        unlocked = averageWpm >= 80 && averageWpm <= 150 && averageWpm > 0;
+        unlocked = averageWpm >= 301 && averageWpm <= 500 && averageWpm > 0;
         break;
       case "sentences-500":
         unlocked = totalSentencesRead >= 500;
@@ -153,7 +153,7 @@ export default function MypageDashboard() {
       </div>
 
       <div className="mb-10">
-        <SpeedChart averageWpm={stats.averageWpm} />
+        <SpeedChart averageCpm={stats.averageWpm} />
       </div>
 
       <div className="mb-10">

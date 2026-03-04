@@ -73,3 +73,25 @@ export function pickRandomTodayWord(): TodayWordItem {
   const index = Math.floor(Math.random() * TODAY_WORD_LIST.length);
   return TODAY_WORD_LIST[index];
 }
+
+/** 시드 문자열로 결정적 정수 생성 (서버/클라이언트 동일 결과로 하이드레이션 방지) */
+function hashSeed(seed: string): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (h << 5) - h + seed.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+/** 시드 기반 결정적 셔플 */
+export function seededShuffle<T>(arr: T[], seed: string): T[] {
+  const a = [...arr];
+  let s = hashSeed(seed);
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}

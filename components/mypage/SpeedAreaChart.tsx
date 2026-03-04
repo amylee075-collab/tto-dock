@@ -86,7 +86,7 @@ export default function SpeedAreaChart({ data, labels }: SpeedAreaChartProps) {
         </div>
       )}
       <p className="text-sm font-medium text-gray-500 mt-2">
-        7일간 읽기 속도(WPM) 변화 곡선
+        7일간 읽기 속도(글자/분) 변화 곡선
       </p>
     </section>
   );

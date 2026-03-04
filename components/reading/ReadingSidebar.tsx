@@ -3,88 +3,77 @@
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { WPMTier, WPMStatus } from "@/lib/hooks/useWPM";
+import type { CPMTier, CPMStatus } from "@/lib/hooks/useCPM";
 import { useReadingTimer } from "@/lib/hooks/useReadingTimer";
 
 interface ReadingSidebarProps {
-  wpm: number;
-  tier: WPMTier;
+  cpm: number;
+  tier: CPMTier;
+  tierLabel: string;
+  tierMessage: string;
   readCount: number;
   totalSentences: number;
-  wpmStatus?: WPMStatus;
+  cpmStatus?: CPMStatus;
   className?: string;
   /** 모바일: 상단 접이식(아코디언)으로 렌더 */
   asAccordion?: boolean;
 }
 
 const ORANGE = "#FF5C00";
-/** WPM 게이지 최대값(이 값이면 100% 채움) */
-const WPM_GAUGE_MAX = 250;
-/** 카운트업/다운 애니메이션 시간(초) */
-const WPM_ANIM_DURATION_MS = 500;
+/** CPM 게이지 최대값(이 값이면 100% 채움) */
+const CPM_GAUGE_MAX = 1000;
+/** 카운트업/다운 애니메이션 시간(ms) */
+const CPM_ANIM_DURATION_MS = 500;
 
-const tierConfig: Record<
-  WPMTier,
-  { label: string; className: string; feedback: string }
-> = {
-  느림: {
-    label: "느림",
-    className: "bg-blue-100 text-blue-800 border-blue-200",
-    feedback: "천천히 꼼꼼하게 읽어봐요!",
-  },
-  보통: {
-    label: "보통",
-    className: "bg-[#fff5f0] text-[#FF5C00] border-[#FF5C00]/30",
-    feedback: "적당한 속도로 잘 읽고 있어요!",
-  },
-  빠름: {
-    label: "빠름",
-    className: "bg-red-50 text-red-700 border-red-200",
-    feedback: "너무 빨라요! 천천히 읽어봐요",
-  },
+const tierClass: Record<CPMTier, string> = {
+  차근차근: "bg-blue-100 text-blue-800 border-blue-200",
+  안정적: "bg-[#fff5f0] text-[#FF5C00] border-[#FF5C00]/30",
+  빠름: "bg-amber-50 text-amber-800 border-amber-200",
+  "매우 빠름": "bg-red-50 text-red-700 border-red-200",
 };
 
 export default function ReadingSidebar({
-  wpm,
+  cpm,
   tier,
+  tierLabel,
+  tierMessage,
   readCount,
   totalSentences,
-  wpmStatus = "ready",
+  cpmStatus = "ready",
   className = "",
   asAccordion = false,
 }: ReadingSidebarProps) {
   const [avatarError, setAvatarError] = useState(false);
-  const [displayWpm, setDisplayWpm] = useState(wpm);
+  const [displayCpm, setDisplayCpm] = useState(cpm);
   const [accordionOpen, setAccordionOpen] = useState(false);
-  const prevWpmRef = useRef(wpm);
+  const prevCpmRef = useRef(cpm);
   const animRef = useRef<number | null>(null);
   const elapsed = useReadingTimer();
-  const config = tierConfig[tier];
   const progressPercent =
     totalSentences > 0 ? Math.round((readCount / totalSentences) * 100) : 0;
-  const isMeasuring = wpmStatus === "measuring";
-  const wpmGaugePercent =
-    isMeasuring || displayWpm <= 0 ? 0 : Math.min(100, (displayWpm / WPM_GAUGE_MAX) * 100);
+  const isMeasuring = cpmStatus === "measuring";
+  const cpmGaugePercent =
+    isMeasuring || displayCpm <= 0 ? 0 : Math.min(100, (displayCpm / CPM_GAUGE_MAX) * 100);
 
   // 0.5초 동안 이전 값 → 새 값으로 서서히 변하는 카운트업/다운
   useEffect(() => {
     if (isMeasuring) {
-      setDisplayWpm(0);
-      prevWpmRef.current = 0;
+      setDisplayCpm(0);
+      prevCpmRef.current = 0;
       return;
     }
-    const target = wpm;
-    if (target === prevWpmRef.current) return;
-    const start = prevWpmRef.current;
+    const target = cpm;
+    if (target === prevCpmRef.current) return;
+    const start = prevCpmRef.current;
     const startTime = performance.now();
     if (animRef.current !== null) cancelAnimationFrame(animRef.current);
     const tick = (now: number) => {
       const elapsed = now - startTime;
-      const t = Math.min(1, elapsed / WPM_ANIM_DURATION_MS);
+      const t = Math.min(1, elapsed / CPM_ANIM_DURATION_MS);
       const ease = 1 - (1 - t) * (1 - t);
       const value = Math.round(start + (target - start) * ease);
-      setDisplayWpm(value);
-      prevWpmRef.current = value;
+      setDisplayCpm(value);
+      prevCpmRef.current = value;
       if (t < 1) animRef.current = requestAnimationFrame(tick);
       else animRef.current = null;
     };
@@ -92,11 +81,11 @@ export default function ReadingSidebar({
     return () => {
       if (animRef.current !== null) cancelAnimationFrame(animRef.current);
     };
-  }, [wpm, isMeasuring]);
+  }, [cpm, isMeasuring]);
 
   useEffect(() => {
-    if (!isMeasuring) prevWpmRef.current = wpm;
-  }, [wpm, isMeasuring]);
+    if (!isMeasuring) prevCpmRef.current = cpm;
+  }, [cpm, isMeasuring]);
 
   const contentCard = (
       <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 min-w-0 overflow-hidden">
@@ -148,7 +137,7 @@ export default function ReadingSidebar({
           </div>
         </div>
 
-        {/* 3. 읽기 속도 (WPM) + 상태 태그 + 캐릭터 피드백 */}
+        {/* 3. 읽기 속도 (CPM) + 상태 태그 + 캐릭터 피드백 */}
         <div className="pt-4 border-t border-gray-100">
           <p className="text-base font-medium text-gray-500 mb-2">읽기 속도</p>
           <div className="flex items-center gap-2 mb-2">
@@ -164,24 +153,24 @@ export default function ReadingSidebar({
                 </span>
               ) : (
                 <motion.span
-                  key={displayWpm}
+                  key={displayCpm}
                   initial={false}
                   transition={{ duration: 0.15 }}
                 >
-                  {displayWpm}
+                  {displayCpm}
                 </motion.span>
               )}
               {!isMeasuring && (
                 <span className="text-lg font-medium text-gray-500 ml-1">
-                  WPM
+                  글자 / 분
                 </span>
               )}
             </motion.p>
             {!isMeasuring && (
               <span
-                className={`inline-flex rounded-lg border px-2.5 py-1 text-sm font-medium ${config.className}`}
+                className={`inline-flex rounded-lg border px-2.5 py-1 text-sm font-medium ${tierClass[tier]}`}
               >
-                {config.label}
+                {tierLabel}
               </span>
             )}
           </div>
@@ -190,7 +179,7 @@ export default function ReadingSidebar({
               className="h-full rounded-full"
               style={{ backgroundColor: ORANGE }}
               initial={false}
-              animate={{ width: `${wpmGaugePercent}%` }}
+              animate={{ width: `${cpmGaugePercent}%` }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             />
           </div>
@@ -199,7 +188,7 @@ export default function ReadingSidebar({
               {!avatarError ? (
                 <Image
                   src="/images/character.png"
-                  alt="똑똑이"
+                  alt="또독이"
                   width={40}
                   height={40}
                   className="w-full h-auto object-contain object-top"
@@ -214,7 +203,7 @@ export default function ReadingSidebar({
             <p className="text-base font-medium text-[#212529] leading-snug">
               {isMeasuring
                 ? "몇 문장 더 읽으면 속도가 표시돼요."
-                : config.feedback}
+                : tierMessage}
             </p>
           </div>
         </div>

@@ -163,7 +163,7 @@ export default function ShortStoryVocabTooltip({
               }
             }
           }}
-          className="cursor-pointer border-b-2 border-[#ff5700] font-medium text-[#ff5700]/90 hover:text-[#ff5700]"
+          className="cursor-pointer font-medium text-[#ff5700]/90 hover:text-[#ff5700]"
           style={{ cursor: "pointer", pointerEvents: "auto" }}
         >
           {children}

@@ -26,7 +26,7 @@ export interface ChallengeData {
   quizCorrect: number;
   /** 퀴즈 전체 문제 수 누적 */
   quizTotal: number;
-  /** 마지막 기록된 WPM (평균 대신 최근값 사용) */
+  /** 마지막 기록된 CPM(글자/분). 저장 키는 호환용 lastWpm 유지 */
   lastWpm: number;
   /** 연속 학습 일수 */
   streakDays: number;
@@ -34,7 +34,7 @@ export interface ChallengeData {
   lastActivityDate: string | null;
   /** 요일별 읽은 문장 수 [월,화,수,목,금,토,일]. 그래프 X축 인덱스와 일치 */
   weeklySentencesByDay: number[];
-  /** 요일별 WPM [월~일]. 속도 변화 그래프용, 리셋 시 전부 0 */
+  /** 요일별 CPM(글자/분) [월~일]. 속도 변화 그래프용, 리셋 시 전부 0 */
   weeklyWpmByDay: number[];
   /** 날짜(YYYY-MM-DD)별 기록. 최근 7일 X축 매칭용 */
   dailyStats?: Record<string, { sentences: number; wpm: number }>;
@@ -196,8 +196,8 @@ export function addReadingResult(sentencesRead: number): void {
   write(next);
 }
 
-/** 퀴즈 완료: 정답/전체 누적 + 오늘 요일·날짜별 WPM 기록 + 활동일/연속일 갱신 */
-export function addQuizResult(correct: number, total: number, wpm: number): void {
+/** 퀴즈 완료: 정답/전체 누적 + 오늘 요일·날짜별 CPM 기록 + 활동일/연속일 갱신 */
+export function addQuizResult(correct: number, total: number, cpm: number): void {
   const data = readRaw();
   const next = data ? { ...data } : defaultData();
   next.weeklySentencesByDay = ensureWeeklyArray(next.weeklySentencesByDay);
@@ -208,22 +208,22 @@ export function addQuizResult(correct: number, total: number, wpm: number): void
     const fresh = defaultData();
     fresh.quizCorrect = correct;
     fresh.quizTotal = total;
-    fresh.lastWpm = wpm;
+    fresh.lastWpm = cpm;
     fresh.lastActivityDate = today;
     fresh.streakDays = 1;
     const dayIdx = getDayIndex();
-    fresh.weeklyWpmByDay[dayIdx] = wpm;
-    fresh.dailyStats = { [today]: { sentences: 0, wpm } };
+    fresh.weeklyWpmByDay[dayIdx] = cpm;
+    fresh.dailyStats = { [today]: { sentences: 0, wpm: cpm } };
     write(fresh);
     return;
   }
   next.quizCorrect += correct;
   next.quizTotal += total;
-  next.lastWpm = wpm;
+  next.lastWpm = cpm;
   const dayIdx = getDayIndex();
-  next.weeklyWpmByDay[dayIdx] = wpm;
+  next.weeklyWpmByDay[dayIdx] = cpm;
   if (!next.dailyStats[today]) next.dailyStats[today] = { sentences: 0, wpm: 0 };
-  next.dailyStats[today].wpm = wpm;
+  next.dailyStats[today].wpm = cpm;
   if (next.lastActivityDate !== today) {
     const prev = next.lastActivityDate;
     next.lastActivityDate = today;
@@ -294,7 +294,7 @@ function ensureDailyStats(
   return out;
 }
 
-/** 마이페이지용: 정답률 0–100, 오늘부터 앞으로 7일(목표 달성형) 문장 수·WPM·X축 라벨. 미래일은 0. NaN 방지 */
+/** 마이페이지용: 정답률 0–100, 오늘부터 앞으로 7일(목표 달성형) 문장 수·CPM(글자/분)·X축 라벨. 미래일은 0. NaN 방지 */
 export function getChallengeStatsForMypage(): {
   totalSentencesRead: number;
   todayAccuracy: number;

@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState, Fragment } from "react";
 import type { ReadingPassage } from "@/lib/data";
-import { useWPM } from "@/lib/hooks/useWPM";
+import { useCPM } from "@/lib/hooks/useCPM";
 import { useActiveSentence } from "@/lib/hooks/useActiveSentence";
 import ReadingSidebar from "./ReadingSidebar";
 import ReadingNavBar from "./ReadingNavBar";
@@ -20,7 +19,7 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
   const [readingStarted, setReadingStarted] = useState(false);
 
   const { activeIndex, setActiveIndex, goNext, goPrev } = useActiveSentence(sentences.length);
-  const { wpm, status, tier, updateWPM } = useWPM(
+  const { cpm, status, tier, tierLabel, tierMessage, updateCPM } = useCPM(
     sentences,
     activeIndex,
     isActive,
@@ -35,15 +34,27 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
 
   useEffect(() => {
     scrollMainToTop();
+    const t = setTimeout(scrollMainToTop, 80);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
     if (mode === "read") {
       scrollMainToTop();
-      const t = setTimeout(scrollMainToTop, 50);
+      const t = setTimeout(scrollMainToTop, 80);
       return () => clearTimeout(t);
     }
   }, [mode]);
+
+  const didInteractRef = useRef(false);
+  useEffect(() => {
+    if (!didInteractRef.current && !readingStarted) return;
+    didInteractRef.current = true;
+    const target = document.querySelector(`[data-sentence-index="${activeIndex}"]`);
+    if (target) {
+      (target as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [activeIndex, readingStarted]);
 
   const toggleKeySentence = (i: number) => {
     setSelectedKeySentences((prev) => {
@@ -94,8 +105,10 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
         </article>
         <div className="order-2 lg:shrink-0 lg:sticky lg:top-8 lg:self-start">
           <ReadingSidebar
-            wpm={0}
-            tier="보통"
+            cpm={0}
+            tier="안정적"
+            tierLabel="✅ 안정적"
+            tierMessage="좋아요! 내용도 잘 이해하고 있나요?"
             readCount={selectedKeySentences.size}
             totalSentences={sentences.length}
             className="w-full lg:w-64"
@@ -109,98 +122,76 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
     <div className="flex flex-col lg:flex-row gap-0 lg:gap-8 w-full">
       <div className="lg:hidden order-1 w-full shrink-0 sticky top-0 z-20 bg-white">
         <ReadingSidebar
-          wpm={wpm}
-          wpmStatus={status}
+          cpm={cpm}
           tier={tier}
+          tierLabel={tierLabel}
+          tierMessage={tierMessage}
+          cpmStatus={status}
           readCount={activeIndex + 1}
           totalSentences={sentences.length}
           asAccordion
         />
       </div>
-      <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
-        <h1 className="font-extrabold text-2xl text-[#212529] mb-1">
+      <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 w-full max-w-3xl lg:max-w-4xl">
+        <h1 className="font-reading-title font-extrabold text-2xl md:text-3xl text-[#212529] mb-2">
           {passage.title}
         </h1>
-        <p className="text-sm text-gray-500 mb-8">{passage.summary}</p>
+        <p className="text-sm text-gray-500 mb-6">{passage.summary}</p>
 
         <div className="pb-[var(--reading-nav-bar-height)]">
-          <div className="flex flex-col gap-y-4">
+          <p
+            className="font-reading-content text-[#212529] select-text"
+            style={{ wordBreak: "keep-all" }}
+          >
             {sentences.map((sentence, i) => {
-              const isActiveSentence = activeIndex === i;
+              const isActive = activeIndex === i;
+              const isRead = i < activeIndex;
               return (
-                <div key={i} className="relative">
-                  {isActiveSentence && (
-                    <motion.span
-                      layoutId="sentence-highlight-passage"
-                      className="absolute left-0 top-0 bottom-0 w-1 rounded-r bg-[#ff5700]"
-                      style={{ width: 4 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                      aria-hidden
-                    />
-                  )}
-                  <motion.p
-                    layout
+                <Fragment key={i}>
+                  {i > 0 && " "}
+                  <span
                     role="button"
                     tabIndex={0}
-                    onClick={(e) => {
+                    onClick={() => {
                       setReadingStarted(true);
                       setActiveIndex(i);
-                      (e.currentTarget as HTMLElement).scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
                         setReadingStarted(true);
                         setActiveIndex(i);
-                        (e.currentTarget as HTMLElement).scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
                       }
                     }}
                     data-sentence-index={i}
-                    className={`relative z-10 cursor-pointer text-xl md:text-[1.5rem] leading-relaxed text-[#212529] py-3 transition-[opacity,filter] duration-200 ${
-                      isActiveSentence ? "pl-5 -ml-1 font-bold" : "opacity-20 blur-[1px] hover:opacity-40 hover:blur-0"
+                    aria-current={isActive ? "true" : undefined}
+                    className={`cursor-pointer inline rounded-[3px] px-0.5 -mx-0.5 transition-[background-color,color,opacity] duration-300 ease-out ${
+                      isActive
+                        ? "bg-[#ff5700]/20 text-[#212529] font-semibold"
+                        : isRead
+                          ? "text-gray-400"
+                          : "text-gray-300 opacity-50"
                     }`}
-                    initial={false}
-                    aria-current={isActiveSentence ? "true" : undefined}
                   >
                     {sentence}
-                  </motion.p>
-                </div>
+                  </span>
+                </Fragment>
               );
             })}
-          </div>
+          </p>
         </div>
         <ReadingNavBar
           onPrev={() => {
             setReadingStarted(true);
-            updateWPM();
-            const prevIndex = Math.max(activeIndex - 1, 0);
+            updateCPM();
             goPrev();
-            setTimeout(() => {
-              document.querySelector(`[data-sentence-index="${prevIndex}"]`)?.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-              });
-              updateWPM();
-            }, 0);
+            updateCPM();
           }}
           onNext={() => {
             setReadingStarted(true);
-            updateWPM();
-            const nextIndex = Math.min(activeIndex + 1, sentences.length - 1);
+            updateCPM();
             goNext();
-            setTimeout(() => {
-              document.querySelector(`[data-sentence-index="${nextIndex}"]`)?.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-              });
-              updateWPM();
-            }, 0);
+            updateCPM();
           }}
           hasPrev={activeIndex > 0}
           hasNext={activeIndex < sentences.length - 1}
@@ -209,9 +200,11 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
 
       <div className="hidden lg:block lg:order-2 lg:shrink-0 lg:sticky lg:top-8 lg:self-start">
         <ReadingSidebar
-          wpm={wpm}
-          wpmStatus={status}
+          cpm={cpm}
           tier={tier}
+          tierLabel={tierLabel}
+          tierMessage={tierMessage}
+          cpmStatus={status}
           readCount={activeIndex + 1}
           totalSentences={sentences.length}
           className="w-full lg:w-64 lg:max-w-[16rem]"

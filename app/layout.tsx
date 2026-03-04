@@ -8,10 +8,13 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { BreadcrumbProvider } from "@/contexts/BreadcrumbContext";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ChallengeTTLGuard from "@/components/ChallengeTTLGuard";
+import SessionProvider from "@/components/providers/SessionProvider";
+import AuthTermsRedirect from "@/components/auth/AuthTermsRedirect";
+import MigrationPrompt from "@/components/auth/MigrationPrompt";
 
 export const metadata: Metadata = {
   title: "또박또박 읽기, 또독!",
-  description: "똑똑이와 함께하는 오늘의 읽기",
+  description: "또독이와 함께하는 오늘의 읽기",
 };
 
 export default function RootLayout({
@@ -22,8 +25,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="h-screen antialiased font-pretendard bg-white overflow-hidden">
-        <SidebarProvider>
-          <SideNav />
+        <SessionProvider>
+          <AuthTermsRedirect />
+          <MigrationPrompt />
+          <SidebarProvider>
+            <SideNav />
           <MobileNavDrawer />
           {/* LNB 제외 오른쪽 영역 = 메인 (PC에서 패딩 260px/80px 토글) */}
           <MainContentArea>
@@ -39,8 +45,9 @@ export default function RootLayout({
               </div>
             </main>
           </MainContentArea>
-        </SidebarProvider>
-        <BottomNav />
+          </SidebarProvider>
+          <BottomNav />
+        </SessionProvider>
       </body>
     </html>
   );

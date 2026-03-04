@@ -165,7 +165,7 @@ export default function VocabularyTooltip({
               }
             }
           }}
-          className="cursor-pointer border-b-2 border-ttodock-orange/60 font-medium text-ttodock-orange/90 hover:text-ttodock-orange"
+          className="cursor-pointer font-medium text-ttodock-orange/90 hover:text-ttodock-orange"
           style={{ cursor: "pointer", pointerEvents: "auto" }}
         >
           {children}

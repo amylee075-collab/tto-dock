@@ -1,33 +1,35 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { getWPMTier } from "@/lib/hooks/useWPM";
-import type { WPMTier } from "@/lib/hooks/useWPM";
+import { getCPMTier } from "@/lib/hooks/useCPM";
+import type { CPMTier } from "@/lib/hooks/useCPM";
 
 interface SpeedChartProps {
-  averageWpm: number;
+  /** 평균 CPM (글자/분). 마이페이지에서는 저장된 lastCpm 사용 */
+  averageCpm: number;
 }
 
-/** WPM 0~200 구간을 0~100%로 매핑 (게이지용) */
-function wpmToPercent(wpm: number): number {
-  const max = 200;
-  return Math.min(100, Math.round((wpm / max) * 100));
+/** CPM 0~1000 구간을 0~100%로 매핑 (게이지용) */
+function cpmToPercent(cpm: number): number {
+  const max = 1000;
+  return Math.min(100, Math.round((cpm / max) * 100));
 }
 
-const statusMessage: Record<WPMTier, string> = {
-  느림: "꼼꼼하게 정독 중",
-  보통: "적당한 속도로 읽고 있어요",
-  빠름: "속도를 조절해 보아요",
+const statusMessage: Record<CPMTier, string> = {
+  차근차근: "꼼꼼하게 읽는 중이네요!",
+  안정적: "좋아요! 내용도 잘 이해하고 있나요?",
+  빠름: "내용을 파악하며 읽어보세요!",
+  "매우 빠름": "주요 내용을 놓치지 않게 조심해요!",
 };
 
-const WPM_ZERO_MESSAGE =
-  "학습을 시작해서 나의 읽기 속도를 확인해 보세요!";
+const CPM_ZERO_MESSAGE =
+  "학습을 시작해서 나의 읽기 속도(글자/분)를 확인해 보세요!";
 
-export default function SpeedChart({ averageWpm }: SpeedChartProps) {
-  const tier = getWPMTier(averageWpm);
-  const percent = wpmToPercent(averageWpm);
-  const isZero = averageWpm === 0;
-  const message = isZero ? WPM_ZERO_MESSAGE : statusMessage[tier];
+export default function SpeedChart({ averageCpm }: SpeedChartProps) {
+  const { tier } = getCPMTier(averageCpm);
+  const percent = cpmToPercent(averageCpm);
+  const isZero = averageCpm === 0;
+  const message = isZero ? CPM_ZERO_MESSAGE : statusMessage[tier];
 
   return (
     <section className="w-full min-w-0 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm mb-8 overflow-hidden">

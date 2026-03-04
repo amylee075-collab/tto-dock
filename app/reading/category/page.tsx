@@ -1,4 +1,5 @@
 import { categoryStories } from "@/lib/data";
+import { getContentsByTypeFromSupabase } from "@/lib/content-from-supabase";
 import StoryCard from "@/components/reading/StoryCard";
 
 /** 3단 컬럼 순서: 과학, 사회, 역사 */
@@ -13,11 +14,19 @@ export const metadata = {
   description: "과학, 역사, 사회 등 다양한 주제의 글을 읽어 보세요.",
 };
 
-export default function CategoryListPage() {
-  const sections = SECTION_ORDER.map((section) => ({
-    section,
-    stories: categoryStories.filter((s) => s.section === section),
-  }));
+export default async function CategoryListPage() {
+  const fromSupabase = await getContentsByTypeFromSupabase("category");
+  const localIds = new Set(categoryStories.map((s) => s.id));
+  const onlyFromSupabase = fromSupabase.filter((s) => !localIds.has(s.id));
+  const merged = onlyFromSupabase.length ? [...onlyFromSupabase, ...categoryStories] : categoryStories;
+
+  const sectionsWithExtra = [
+    ...SECTION_ORDER.map((section) => ({
+      section,
+      stories: merged.filter((s) => s.section === section),
+    })),
+    { section: "추가" as const, stories: merged.filter((s) => !s.section) },
+  ].filter((s) => s.stories.length > 0);
 
   return (
     <div className="w-full max-w-7xl">
@@ -26,7 +35,7 @@ export default function CategoryListPage() {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {sections.map(({ section, stories }) => (
+        {sectionsWithExtra.map(({ section, stories }) => (
           <section
             key={section}
             className="min-w-0 flex flex-col rounded-2xl bg-gray-50 shadow-sm p-6 sm:p-8"

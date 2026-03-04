@@ -1,7 +1,7 @@
 "use client";
 
-import { getWPMTier } from "@/lib/hooks/useWPM";
-import type { WPMTier } from "@/lib/hooks/useWPM";
+import { getCPMTier } from "@/lib/hooks/useCPM";
+import type { CPMTier } from "@/lib/hooks/useCPM";
 
 interface SummaryCardsProps {
   averageWpm: number;
@@ -9,10 +9,11 @@ interface SummaryCardsProps {
   totalSentencesRead: number;
 }
 
-const tierBadgeStyle: Record<WPMTier, string> = {
-  느림: "bg-blue-100 text-blue-800",
-  보통: "bg-soft-orange text-ttodock-orange",
-  빠름: "bg-red-50 text-red-700",
+const tierBadgeStyle: Record<CPMTier, string> = {
+  차근차근: "bg-blue-100 text-blue-800",
+  안정적: "bg-soft-orange text-ttodock-orange",
+  빠름: "bg-amber-50 text-amber-700",
+  "매우 빠름": "bg-red-50 text-red-700",
 };
 
 type CardKey = "sentences" | "accuracy" | "speed";
@@ -22,12 +23,12 @@ export default function SummaryCards({
   todayAccuracy,
   totalSentencesRead,
 }: SummaryCardsProps) {
-  const readingTier = getWPMTier(averageWpm);
+  const { tier: readingTier, label: tierLabel } = getCPMTier(averageWpm);
 
   const cards: { key: CardKey; label: string; value: string }[] = [
     { key: "sentences", label: "읽은 문장 수", value: `${totalSentencesRead}문장` },
     { key: "accuracy", label: "퀴즈 정답률", value: `${todayAccuracy}%` },
-    { key: "speed", label: "평균 속도", value: `${averageWpm} WPM` },
+    { key: "speed", label: "평균 속도", value: `${averageWpm} 글자 / 분` },
   ];
 
   return (
@@ -43,7 +44,7 @@ export default function SummaryCards({
             <span
               className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${tierBadgeStyle[readingTier]}`}
             >
-              {readingTier}
+              {tierLabel}
             </span>
           )}
         </div>

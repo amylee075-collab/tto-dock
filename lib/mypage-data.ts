@@ -4,7 +4,7 @@
 
 export interface MypageStats {
   nickname: string;
-  /** 실시간 WPM 평균 (읽기 호흡 계산용) */
+  /** 실시간 CPM(글자/분) 평균 (읽기 속도 표시용) */
   averageWpm: number;
   /** 오늘의 정답률 0–100 */
   todayAccuracy: number;
@@ -15,11 +15,11 @@ export interface MypageStats {
 /** 주간 학습량 (요일별 읽은 문장 수) */
 export const weeklyLearningData = [42, 68, 55, 80, 72, 90, 65];
 
-/** 속도 변화 (일별 WPM, 최근 7일) */
+/** 속도 변화 (일별 CPM, 최근 7일) */
 export const speedHistoryData = [65, 72, 68, 78, 82, 75, 72];
 
 export const defaultMypageStats: MypageStats = {
-  nickname: "똑똑이",
+  nickname: "또독이",
   averageWpm: 72,
   todayAccuracy: 85,
   totalSentencesRead: 500,
@@ -49,11 +49,13 @@ export function getFeedbackFromStats(stats: {
   const improveItems: string[] = [];
   const { totalSentencesRead, todayAccuracy, averageWpm, streakDays } = stats;
 
-  if (averageWpm > 0 && averageWpm >= 80 && averageWpm <= 150) {
+  if (averageWpm > 0 && averageWpm >= 301 && averageWpm <= 500) {
     goodItems.push("꼼꼼한 읽기 속도를 유지하고 있어요");
-  } else if (averageWpm > 150) {
-    improveItems.push("속도를 조절해 보아요");
-  } else if (averageWpm > 0 && averageWpm < 80) {
+  } else if (averageWpm > 700) {
+    improveItems.push("주요 내용을 놓치지 않게 조심해요");
+  } else if (averageWpm > 500 && averageWpm <= 700) {
+    improveItems.push("내용을 파악하며 읽어보세요");
+  } else if (averageWpm > 0 && averageWpm <= 300) {
     improveItems.push("읽기 속도를 조금 올려보세요");
   }
 

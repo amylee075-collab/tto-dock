@@ -7,6 +7,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import type { CoreWordQuizItem } from "@/lib/coreWordPractice";
 import { CORE_WORD_QUIZ_ITEMS } from "@/lib/coreWordPractice";
 import Link from "next/link";
 
@@ -74,7 +75,6 @@ function buildSegmentsFromSentence(
   return segments;
 }
 
-const TOTAL = CORE_WORD_QUIZ_ITEMS.length;
 
 function ParticleBurst({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
@@ -107,7 +107,12 @@ function ParticleBurst({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-export default function CoreWordPractice() {
+type Props = { items?: CoreWordQuizItem[] };
+
+export default function CoreWordPractice({ items: itemsProp }: Props) {
+  const items = itemsProp ?? CORE_WORD_QUIZ_ITEMS;
+  const TOTAL = items.length;
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [wrongSegmentId, setWrongSegmentId] = useState<number | null>(null);
@@ -115,7 +120,7 @@ export default function CoreWordPractice() {
   const [showParticles, setShowParticles] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
-  const item = CORE_WORD_QUIZ_ITEMS[currentIndex];
+  const item = items[currentIndex];
   const isLast = currentIndex === TOTAL - 1;
   const correctAnswer = item?.correctAnswer ?? "";
   const segments: SentenceSegment[] = item
@@ -299,7 +304,7 @@ export default function CoreWordPractice() {
                     {!avatarError ? (
                       <Image
                         src="/images/character.png"
-                        alt="똑똑이"
+                        alt="또독이"
                         width={56}
                         height={56}
                         className="w-full h-auto object-contain object-top"
@@ -323,7 +328,7 @@ export default function CoreWordPractice() {
                     {!avatarError ? (
                       <Image
                         src="/images/character.png"
-                        alt="똑똑이"
+                        alt="또독이"
                         width={56}
                         height={56}
                         className="w-full h-auto object-contain object-top"

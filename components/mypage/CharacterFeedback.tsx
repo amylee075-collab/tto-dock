@@ -28,7 +28,7 @@ export default function CharacterFeedback({
           {!avatarError ? (
             <Image
               src="/images/character.png"
-              alt="똑똑이"
+              alt="또독이"
               width={96}
               height={96}
               className="w-full h-auto object-contain object-top"

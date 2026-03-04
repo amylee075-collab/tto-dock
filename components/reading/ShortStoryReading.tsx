@@ -1,22 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ShortStory } from "@/lib/data";
-import { splitContentIntoSentences, splitSentenceByVocabulary } from "@/lib/short-story-utils";
+import { splitContentIntoSentences } from "@/lib/short-story-utils";
+import type { ShortStorySegment } from "@/lib/short-story-utils";
 import { useActiveSentence } from "@/lib/hooks/useActiveSentence";
-import { useWPM } from "@/lib/hooks/useWPM";
+import { useCPM } from "@/lib/hooks/useCPM";
 import ShortStoryVocabTooltip from "./ShortStoryVocabTooltip";
 import ReadingNavBar from "./ReadingNavBar";
 import ReadingSidebar from "./ReadingSidebar";
 
 const SLIDE = {
-  initial: { x: "100%", opacity: 0 },
-  animate: { x: 0, opacity: 1 },
-  exit: { x: "-100%", opacity: 0 },
-  transition: { type: "spring", stiffness: 300, damping: 30 },
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.2 },
 };
 
 /** 퀴즈/결과 단계: 슬라이드 없이 페이드만 사용해 뷰포트 상단에 바로 노출되도록 함 */
@@ -35,19 +36,68 @@ function normalizeAnswer(s: string): string {
 
 interface ShortStoryReadingProps {
   story: ShortStory;
-  /** 제공 시 퀴즈 풀기 클릭 시 이 콜백만 호출 (wpm 전달). 페이지에서 QUIZ 단계로 전환 */
-  onGoQuiz?: (wpm: number) => void;
+  /** 제공 시 퀴즈 풀기 클릭 시 이 콜백만 호출 (cpm 전달). 페이지에서 QUIZ 단계로 전환 */
+  onGoQuiz?: (cpm: number) => void;
+  /** 목록으로 돌아가기 링크 (진입 출처에 맞는 목록) */
+  listHref?: string;
 }
 
 export default function ShortStoryReading({
   story,
   onGoQuiz,
+  listHref = "/reading/short",
 }: ShortStoryReadingProps) {
   const { title, content, vocabulary, coreQuiz, readQuizzes } = story;
   const sentences = splitContentIntoSentences(content);
 
+  const sentenceSegments = useMemo((): ShortStorySegment[][] => {
+    if (!vocabulary?.length) {
+      return sentences.map((s) => [{ type: "text", value: s }]);
+    }
+
+    // 긴 단어 우선 + 첫 등장만 강조(중복 제거)
+    const sorted = [...vocabulary].sort((a, b) => b.word.length - a.word.length);
+    const renderedWords = new Set<string>();
+
+    const splitFirstOnly = (sentence: string): ShortStorySegment[] => {
+      const segments: ShortStorySegment[] = [];
+      let remaining = sentence;
+
+      while (remaining.length > 0) {
+        let found = false;
+        for (const item of sorted) {
+          const idx = remaining.indexOf(item.word);
+          if (idx !== -1) {
+            if (idx > 0) {
+              segments.push({ type: "text", value: remaining.slice(0, idx) });
+            }
+
+            if (renderedWords.has(item.word)) {
+              segments.push({ type: "text", value: item.word });
+            } else {
+              segments.push({ type: "vocab", item, value: item.word });
+              renderedWords.add(item.word);
+            }
+
+            remaining = remaining.slice(idx + item.word.length);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          segments.push({ type: "text", value: remaining });
+          break;
+        }
+      }
+
+      return segments;
+    };
+
+    return sentences.map(splitFirstOnly);
+  }, [sentences, vocabulary]);
+
   const [step, setStep] = useState<Step>("READING");
-  const [resultWpm, setResultWpm] = useState(0);
+  const [resultCpm, setResultCpm] = useState(0);
   const [coreCorrect, setCoreCorrect] = useState(false);
   const [coreSkipped, setCoreSkipped] = useState(false);
   const [coreChecked, setCoreChecked] = useState<boolean | null>(null);
@@ -58,7 +108,7 @@ export default function ShortStoryReading({
   const [readingStarted, setReadingStarted] = useState(false);
 
   const { activeIndex, setActiveIndex, goNext, goPrev } = useActiveSentence(sentences.length);
-  const { wpm, status, tier, readCount, updateWPM } = useWPM(
+  const { cpm, status, tier, tierLabel, tierMessage, readCount, updateCPM } = useCPM(
     sentences,
     activeIndex,
     step === "READING",
@@ -75,7 +125,7 @@ export default function ShortStoryReading({
   useEffect(() => {
     if (step === "READING") {
       scrollMainToTop();
-      const t = setTimeout(scrollMainToTop, 50);
+      const t = setTimeout(scrollMainToTop, 80);
       return () => clearTimeout(t);
     }
     scrollMainToTop();
@@ -85,10 +135,22 @@ export default function ShortStoryReading({
 
   useEffect(() => {
     scrollMainToTop();
+    const t = setTimeout(scrollMainToTop, 80);
+    return () => clearTimeout(t);
   }, []);
 
+  const didInteractRef = useRef(false);
+  useEffect(() => {
+    if (step !== "READING" || !didInteractRef.current && !readingStarted) return;
+    didInteractRef.current = true;
+    const target = document.querySelector(`[data-sentence-index="${activeIndex}"]`);
+    if (target) {
+      (target as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [activeIndex, readingStarted, step]);
+
   const goQuizIntro = () => {
-    setResultWpm(wpm);
+    setResultCpm(cpm);
     setStep("QUIZ_INTRO");
   };
 
@@ -153,61 +215,54 @@ export default function ShortStoryReading({
             {/* 모바일: 상단 접이식 학습 진행률 (sticky) */}
             <div className="lg:hidden order-1 w-full shrink-0 sticky top-0 z-20 bg-white">
               <ReadingSidebar
-                wpm={wpm}
-                wpmStatus={status}
+                cpm={cpm}
                 tier={tier}
+                tierLabel={tierLabel}
+                tierMessage={tierMessage}
+                cpmStatus={status}
                 readCount={readCount}
                 totalSentences={sentences.length}
                 asAccordion
               />
             </div>
-            <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 max-w-3xl lg:max-w-none">
-              <h1 className="font-extrabold text-2xl text-[#212529] mb-6">{title}</h1>
+            <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 w-full max-w-3xl lg:max-w-4xl">
+              <h1 className="font-reading-title font-extrabold text-2xl md:text-3xl text-[#212529] mb-6">{title}</h1>
               <div className="pb-[var(--reading-nav-bar-height)]">
-                <div className="flex flex-col gap-y-4">
+                <p
+                  className="font-reading-content text-[#212529] select-text"
+                  style={{ wordBreak: "keep-all" }}
+                >
                   {sentences.map((sentence, i) => {
-                    const segments = splitSentenceByVocabulary(sentence, vocabulary);
+                    const segments =
+                      sentenceSegments[i] ?? [{ type: "text" as const, value: sentence }];
                     const isActive = activeIndex === i;
+                    const isRead = i < activeIndex;
                     return (
-                      <div key={i} className="relative">
-                        {isActive && (
-                          <motion.span
-                            layoutId="sentence-highlight-short"
-                            className="absolute left-0 top-0 bottom-0 w-1 rounded-r bg-[#ff5700]"
-                            style={{ width: 4 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                            aria-hidden
-                          />
-                        )}
-                        <motion.p
-                          layout
+                      <Fragment key={i}>
+                        {i > 0 && " "}
+                        <span
                           role="button"
                           tabIndex={0}
-                          onClick={(e) => {
+                          onClick={() => {
                             setReadingStarted(true);
                             setActiveIndex(i);
-                            (e.currentTarget as HTMLElement).scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
                               setReadingStarted(true);
                               setActiveIndex(i);
-                              (e.currentTarget as HTMLElement).scrollIntoView({
-                                behavior: "smooth",
-                                block: "center",
-                              });
                             }
                           }}
                           data-sentence-index={i}
-                          className={`relative z-10 cursor-pointer text-xl md:text-[1.5rem] leading-relaxed text-[#212529] py-3 transition-[opacity,filter] duration-200 ${
-                            isActive ? "pl-5 -ml-1 font-bold" : "opacity-20 blur-[1px] hover:opacity-40 hover:blur-0"
-                          }`}
-                          initial={false}
                           aria-current={isActive ? "true" : undefined}
+                          className={`cursor-pointer inline rounded-[3px] px-0.5 -mx-0.5 transition-[background-color,color,opacity] duration-300 ease-out ${
+                            isActive
+                              ? "bg-[#ff5700]/20 text-[#212529] font-semibold"
+                              : isRead
+                                ? "text-gray-400"
+                                : "text-gray-300 opacity-50"
+                          }`}
                         >
                           {segments.map((seg, j) =>
                             seg.type === "text" ? (
@@ -218,42 +273,28 @@ export default function ShortStoryReading({
                               </ShortStoryVocabTooltip>
                             )
                           )}
-                        </motion.p>
-                      </div>
+                        </span>
+                      </Fragment>
                     );
                   })}
-                </div>
+                </p>
               </div>
               {step === "READING" && (
                 <ReadingNavBar
                   onPrev={() => {
                     setReadingStarted(true);
-                    updateWPM();
-                    const prevIndex = Math.max(activeIndex - 1, 0);
+                    updateCPM();
                     goPrev();
-                    setTimeout(() => {
-                      document.querySelector(`[data-sentence-index="${prevIndex}"]`)?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
-                      updateWPM();
-                    }, 0);
+                    updateCPM();
                   }}
                   onNext={
                     isOnLastSentence
-                      ? (onGoQuiz ? () => onGoQuiz(wpm) : goQuizIntro)
+                      ? (onGoQuiz ? () => onGoQuiz(cpm) : goQuizIntro)
                       : () => {
                           setReadingStarted(true);
-                          updateWPM();
-                          const nextIndex = Math.min(activeIndex + 1, sentences.length - 1);
+                          updateCPM();
                           goNext();
-                          setTimeout(() => {
-                            document.querySelector(`[data-sentence-index="${nextIndex}"]`)?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
-                            updateWPM();
-                          }, 0);
+                          updateCPM();
                         }
                   }
                   hasPrev={activeIndex > 0}
@@ -265,9 +306,11 @@ export default function ShortStoryReading({
             {/* PC: 우측 고정 학습 진행률 사이드바 */}
             <div className="hidden lg:block lg:order-2 lg:shrink-0 lg:sticky lg:top-8 lg:self-start">
               <ReadingSidebar
-                wpm={wpm}
-                wpmStatus={status}
+                cpm={cpm}
                 tier={tier}
+                tierLabel={tierLabel}
+                tierMessage={tierMessage}
+                cpmStatus={status}
                 readCount={readCount}
                 totalSentences={sentences.length}
                 className="w-full lg:w-64 lg:max-w-[16rem]"
@@ -290,7 +333,7 @@ export default function ShortStoryReading({
               <span className="flex h-20 w-20 mx-auto items-center justify-center overflow-hidden rounded-full border-2 border-[#ff5700]/30 bg-[#fff5f0] mb-6">
                 <Image
                   src="/images/character.png"
-                  alt="똑똑이"
+                  alt="또독이"
                   width={80}
                   height={80}
                   className="w-full h-auto object-contain object-top"
@@ -513,7 +556,7 @@ export default function ShortStoryReading({
               <span className="flex h-24 w-24 mx-auto items-center justify-center overflow-hidden rounded-full border-2 border-[#ff5700]/30 bg-[#fff5f0] mb-8">
                 <Image
                   src="/images/character.png"
-                  alt="똑똑이"
+                  alt="또독이"
                   width={96}
                   height={96}
                   className="w-full h-auto object-contain object-top"
@@ -531,11 +574,11 @@ export default function ShortStoryReading({
                 </p>
                 <p className="font-medium text-[#212529]">
                   읽기 속도{" "}
-                  <span className="text-[#ff5700] font-bold">{resultWpm} WPM</span>
+                  <span className="text-[#ff5700] font-bold">{resultCpm} 글자 / 분</span>
                 </p>
               </div>
               <Link
-                href="/reading/short"
+                href={listHref}
                 className="inline-flex items-center justify-center rounded-xl px-8 py-4 font-bold text-white bg-[#ff5700] hover:opacity-90 transition-opacity"
               >
                 목록으로 돌아가기

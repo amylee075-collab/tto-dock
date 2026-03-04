@@ -14,16 +14,18 @@ function normalizeAnswer(s: string): string {
 export interface QuizCompletePayload {
   quizCorrect: number;
   quizTotal: number;
-  wpm: number;
+  cpm: number;
 }
 
 interface ShortStoryQuizContainerProps {
   story: ShortStory;
   onBack: () => void;
-  /** 읽기 단계에서 측정한 WPM (결과 화면 표시용) */
-  resultWpm?: number;
+  /** 읽기 단계에서 측정한 CPM (결과 화면 표시용) */
+  resultCpm?: number;
   /** 퀴즈 결과 화면 도달 시 1회 호출 (챌린지 저장 등) */
   onComplete?: (payload: QuizCompletePayload) => void;
+  /** 목록으로 돌아가기 링크 (진입 출처에 맞는 목록) */
+  listHref?: string;
 }
 
 type QuizPhase = "core" | "coreFeedback" | "mcq" | "RESULT";
@@ -31,8 +33,9 @@ type QuizPhase = "core" | "coreFeedback" | "mcq" | "RESULT";
 export default function ShortStoryQuizContainer({
   story,
   onBack,
-  resultWpm = 0,
+  resultCpm = 0,
   onComplete,
+  listHref = "/reading/short",
 }: ShortStoryQuizContainerProps) {
   const router = useRouter();
   const { title, coreQuiz, readQuizzes } = story;
@@ -55,10 +58,10 @@ export default function ShortStoryQuizContainer({
       onComplete({
         quizCorrect: totalCorrect,
         quizTotal: totalQuizzes,
-        wpm: resultWpm,
+        cpm: resultCpm,
       });
     }
-  }, [phase, hasQuizData, totalCorrect, totalQuizzes, resultWpm, onComplete]);
+  }, [phase, hasQuizData, totalCorrect, totalQuizzes, resultCpm, onComplete]);
 
   /** 현재 문항 번호 (1-based). core=1, mcq=2,3,... */
   const currentStepIndex =
@@ -137,7 +140,7 @@ export default function ShortStoryQuizContainer({
           <span className="flex h-28 w-28 mb-8 items-center justify-center overflow-hidden rounded-full border-2 border-[#ff5700]/30 bg-[#fff5f0]">
             <Image
               src="/images/character.png"
-              alt="똑똑이"
+              alt="또독이"
               width={112}
               height={112}
               className="w-full h-auto object-contain object-top"
@@ -152,7 +155,7 @@ export default function ShortStoryQuizContainer({
             </p>
             <p className="font-medium text-[#212529]">
               읽기 속도{" "}
-              <span className="text-[#ff5700] font-bold">{resultWpm} WPM</span>
+              <span className="text-[#ff5700] font-bold">{resultCpm} 글자 / 분</span>
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
@@ -165,7 +168,7 @@ export default function ShortStoryQuizContainer({
             </button>
             <button
               type="button"
-              onClick={() => router.push("/reading/short")}
+              onClick={() => router.push(listHref)}
               className="rounded-xl px-6 py-3 font-bold text-white bg-[#ff5700] hover:opacity-90 transition-opacity"
             >
               목록으로 돌아가기

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getCategoryStoryById } from "@/lib/data";
+import { getContentFromSupabase } from "@/lib/content-from-supabase";
 import ShortStoryPageClient from "@/components/reading/ShortStoryPageClient";
 import SetBreadcrumbTitle from "@/components/SetBreadcrumbTitle";
 
@@ -9,7 +10,8 @@ interface PageProps {
 
 export default async function CategoryStoryPage({ params }: PageProps) {
   const { id } = await params;
-  const story = getCategoryStoryById(id);
+  const storyFromSupabase = await getContentFromSupabase("category", id);
+  const story = storyFromSupabase ?? getCategoryStoryById(id);
 
   if (!story) notFound();
 

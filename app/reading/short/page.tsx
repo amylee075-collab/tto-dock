@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { shortStories } from "@/lib/data";
+import { getContentsByTypeFromSupabase } from "@/lib/content-from-supabase";
 import ThumbnailWithFallback from "@/components/reading/ThumbnailWithFallback";
 
 function getShortDescription(content: string, maxLen = 80) {
@@ -8,7 +9,12 @@ function getShortDescription(content: string, maxLen = 80) {
   return trimmed.slice(0, maxLen) + "…";
 }
 
-export default function ShortReadingListPage() {
+export default async function ShortReadingListPage() {
+  const fromSupabase = await getContentsByTypeFromSupabase("short");
+  const localIds = new Set(shortStories.map((s) => s.id));
+  const onlyFromSupabase = fromSupabase.filter((s) => !localIds.has(s.id));
+  const ordered = onlyFromSupabase.length ? [...onlyFromSupabase, ...shortStories] : shortStories;
+
   return (
     <div className="w-full max-w-7xl">
       <h1 className="font-extrabold text-2xl text-[#212529] mb-2">
@@ -18,7 +24,7 @@ export default function ShortReadingListPage() {
         명작과 고전을 읽고 어휘를 익힌 뒤 퀴즈를 풀어 보세요.
       </p>
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-        {shortStories.map((story, index) => (
+        {ordered.map((story, index) => (
           <li
             key={story.id}
             className="flex flex-col rounded-xl border border-gray-200 bg-white overflow-hidden min-w-0 w-full"
