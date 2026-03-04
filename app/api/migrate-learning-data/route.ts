@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth-options";
 import type { ChallengeData } from "@/lib/challenge-storage";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
