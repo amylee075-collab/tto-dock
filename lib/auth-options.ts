@@ -1,5 +1,4 @@
-import type { JWT } from "next-auth/jwt";
-import type { Session } from "next-auth";
+import type { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { createClient } from "@supabase/supabase-js";
@@ -8,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseService = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export const authOptions = {
+export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -38,39 +37,26 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async jwt({
-      token,
-      user,
-      account,
-    }: {
-      token: JWT & { id?: string; provider?: string };
-      user?: { id: string };
-      account?: { provider?: string };
-    }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id;
-        token.provider = account?.provider;
+        (token as { id?: string; provider?: string }).id = user.id;
+        (token as { id?: string; provider?: string }).provider = account?.provider ?? undefined;
       }
       return token;
     },
-    async session({
-      session,
-      token,
-    }: {
-      session: Session;
-      token: JWT & { id?: string; provider?: string };
-    }) {
+    async session({ session, token }) {
+      const t = token as { id?: string; provider?: string };
       if (session.user) {
-        (session.user as { id?: string }).id = token.id as string;
-        (session as { provider?: string }).provider = token.provider as string;
+        (session.user as { id?: string }).id = t.id as string;
+        (session as { provider?: string }).provider = t.provider as string;
       }
-      if (token.id && supabaseService) {
+      if (t.id && supabaseService) {
         try {
           const supabase = createClient(supabaseUrl, supabaseService);
           const { data } = await supabase
             .from("user_profiles")
             .select("terms_agreed_at")
-            .eq("auth_user_id", token.id)
+            .eq("auth_user_id", t.id)
             .single();
           (session as { needsTermsAgreement?: boolean }).needsTermsAgreement = !data?.terms_agreed_at;
         } catch {

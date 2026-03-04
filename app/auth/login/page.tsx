@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
@@ -16,7 +16,7 @@ function getCloseHref(callbackUrl: string): string {
   return callbackUrl;
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const closeHref = useMemo(() => getCloseHref(callbackUrl), [callbackUrl]);
@@ -143,5 +143,13 @@ export default function LoginPage() {
         비회원으로 계속하기
       </a>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="max-w-md mx-auto px-4 py-10 text-center text-gray-500">로딩 중...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
