@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+function normalizeEnv(value: string): string {
+  return value.trim().replace(/^["']|["']$/g, "").replace(/\r\n|\n|\r/g, "");
+}
+const supabaseUrl = normalizeEnv(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
+const supabaseAnon = normalizeEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").replace(/\s+/g, "");
 const supabaseService = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 /** 이메일 형식: 로컬@도메인.최상위 (공백 없이, @와 . 포함) */
@@ -31,6 +34,12 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    if (!supabaseUrl || !supabaseAnon) {
+      return NextResponse.json(
+        { error: "설정 오류입니다. NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_ANON_KEY를 .env에 넣었는지 확인하세요." },
+        { status: 500 }
+      );
+    }
     const supabase = createClient(supabaseUrl, supabaseAnon);
     const { data, error } = await supabase.auth.signUp({
       email: trimmedEmail,
@@ -39,11 +48,13 @@ export async function POST(request: Request) {
     });
     if (error) {
       const raw = error.message.toLowerCase();
-      const msg =
-        raw.includes("already registered") ||
-        raw.includes("already exists") ||
-        raw.includes("duplicate") ||
-        error.code === "user_already_exists"
+      const isKeyError = /invalid\s*api\s*key|invalid\s*jwt|api\s*key\s*invalid|missing\s*api\s*key|apikey/i.test(raw);
+      const msg = isKeyError
+        ? "Supabase API 키 오류입니다. Supabase 대시보드 → 해당 프로젝트 → Settings → API 에서 Project URL과 같은 프로젝트의 anon (public) 키를 복사해 NEXT_PUBLIC_SUPABASE_ANON_KEY에 넣어 주세요. (URL과 anon 키는 반드시 같은 프로젝트 것이어야 합니다.)"
+        : raw.includes("already registered") ||
+            raw.includes("already exists") ||
+            raw.includes("duplicate") ||
+            error.code === "user_already_exists"
           ? "이미 가입된 이메일입니다. 로그인해 주세요."
           : raw.includes("invalid") && raw.includes("email")
             ? "올바른 이메일 주소를 입력해 주세요. (예: name@example.com)"
@@ -53,15 +64,17 @@ export async function POST(request: Request) {
     if (!data.user) {
       return NextResponse.json({ error: "가입 처리 중 오류가 발생했습니다." }, { status: 500 });
     }
-    // 어드민에서 회원 목록 조회용: user_profiles에 즉시 반영 (service role)
+    // 어드민에서 회원 목록 조회용 + 약관 동의 시각 저장 (가입 시 약관 동의했으므로 여기서 저장 → 새로고침 시 약관 페이지 재노출 방지)
     if (supabaseService && data.user.id) {
       try {
         const admin = createClient(supabaseUrl, supabaseService);
+        const now = new Date().toISOString();
         await admin.from("user_profiles").upsert(
           {
             auth_user_id: data.user.id,
             email: trimmedEmail,
-            updated_at: new Date().toISOString(),
+            terms_agreed_at: now,
+            updated_at: now,
           },
           { onConflict: "auth_user_id" }
         );

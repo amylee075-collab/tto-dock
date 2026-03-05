@@ -39,7 +39,7 @@ const TERMS_PRIVACY = `
 `;
 
 export default function TermsAgreementPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
   const [agreeAll, setAgreeAll] = useState(false);
   const [agreeService, setAgreeService] = useState(false);
@@ -78,8 +78,11 @@ export default function TermsAgreementPage() {
         setError(data.error || "저장에 실패했습니다.");
         return;
       }
+      await updateSession();
       router.replace("/");
       router.refresh();
+    } catch {
+      setError("네트워크 오류가 발생했습니다. 다시 시도해 주세요.");
     } finally {
       setLoading(false);
     }

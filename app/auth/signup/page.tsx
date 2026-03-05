@@ -53,11 +53,37 @@ export default function SignupPage() {
   const submittingRef = useRef(false);
   const router = useRouter();
 
+  /** 전체 동의 시 만 14세 + 서비스 이용약관 + 개인정보 처리방침 모두 체크 */
   const handleAgreeAll = (checked: boolean) => {
     setAgreeAll(checked);
+    setAge14Checked(checked);
     setAgreeService(checked);
     setAgreePrivacy(checked);
   };
+
+  const handleAge14Change = (checked: boolean) => {
+    setAge14Checked(checked);
+    if (!checked) setAgreeAll(false);
+    else setAgreeAll(agreeService && agreePrivacy && checked);
+  };
+  const handleServiceChange = (checked: boolean) => {
+    setAgreeService(checked);
+    if (!checked) setAgreeAll(false);
+    else setAgreeAll(age14Checked && agreePrivacy && checked);
+  };
+  const handlePrivacyChange = (checked: boolean) => {
+    setAgreePrivacy(checked);
+    if (!checked) setAgreeAll(false);
+    else setAgreeAll(age14Checked && agreeService && checked);
+  };
+
+  const isFormValid =
+    age14Checked &&
+    agreeService &&
+    agreePrivacy &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    password === passwordConfirm;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,11 +160,40 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-10">
-      <h1 className="font-extrabold text-2xl text-[#212529] mb-2 text-center">회원가입</h1>
-      <p className="text-gray-500 text-sm mb-8 text-center">또독과 함께 읽기 습관을 만들어 보세요.</p>
+    <div className="max-w-md mx-auto px-4 py-6">
+      {/* 1. 헤더: 좌측 뒤로가기(←), 우측 닫기(X), 중앙 타이틀·설명 */}
+      <div className="grid grid-cols-3 items-start gap-2 mb-2">
+        <div className="flex justify-start">
+          <button
+            type="button"
+            onClick={() => router.push("/auth/login")}
+            className="p-2 -ml-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#212529] transition-colors"
+            aria-label="뒤로가기"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex flex-col items-center justify-center text-center">
+          <h1 className="font-extrabold text-2xl text-[#212529]">회원가입</h1>
+          <p className="text-gray-500 text-sm mt-1">또독과 함께 읽기 습관을 만들어 보세요.</p>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#212529] transition-colors"
+            aria-label="닫기"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5 mt-8">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-[#212529] mb-1.5">
             이메일
@@ -170,6 +225,12 @@ export default function SignupPage() {
             className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[#212529] placeholder-gray-400 focus:border-[#ff5700] focus:outline-none focus:ring-2 focus:ring-[#ff5700]/20"
             placeholder="8자 이상"
           />
+          <div className="min-h-[20px] mt-1 flex items-center">
+            {password.length > 0 && password.length < 8 && (
+              <p className="text-xs text-amber-600">8자 이상 입력해 주세요.</p>
+            )}
+            {password.length >= 8 && <p className="text-xs text-green-600">사용 가능한 비밀번호입니다.</p>}
+          </div>
         </div>
         <div>
           <label htmlFor="passwordConfirm" className="block text-sm font-medium text-[#212529] mb-1.5">
@@ -185,6 +246,14 @@ export default function SignupPage() {
             className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[#212529] placeholder-gray-400 focus:border-[#ff5700] focus:outline-none focus:ring-2 focus:ring-[#ff5700]/20"
             placeholder="비밀번호 다시 입력"
           />
+          <div className="min-h-[20px] mt-1 flex items-center">
+            {passwordConfirm.length > 0 && password !== passwordConfirm && (
+              <p className="text-xs text-amber-600">비밀번호가 일치하지 않습니다.</p>
+            )}
+            {passwordConfirm.length > 0 && password === passwordConfirm && password.length >= 8 && (
+              <p className="text-xs text-green-600">비밀번호가 일치합니다.</p>
+            )}
+          </div>
         </div>
 
         <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
@@ -192,7 +261,7 @@ export default function SignupPage() {
             <input
               type="checkbox"
               checked={age14Checked}
-              onChange={(e) => setAge14Checked(e.target.checked)}
+              onChange={(e) => handleAge14Change(e.target.checked)}
               className="mt-1 rounded border-gray-300 text-[#ff5700] focus:ring-[#ff5700]"
             />
             <span className="text-sm font-medium text-[#212529]">만 14세 이상입니다 (필수)</span>
@@ -216,11 +285,7 @@ export default function SignupPage() {
             <input
               type="checkbox"
               checked={agreeService}
-              onChange={(e) => {
-                const v = e.target.checked;
-                setAgreeService(v);
-                setAgreeAll(v && agreePrivacy);
-              }}
+              onChange={(e) => handleServiceChange(e.target.checked)}
               className="rounded border-gray-300 text-[#ff5700] focus:ring-[#ff5700]"
             />
             <span className="text-[#212529]">서비스 이용약관 (필수)</span>
@@ -247,11 +312,7 @@ export default function SignupPage() {
             <input
               type="checkbox"
               checked={agreePrivacy}
-              onChange={(e) => {
-                const v = e.target.checked;
-                setAgreePrivacy(v);
-                setAgreeAll(agreeService && v);
-              }}
+              onChange={(e) => handlePrivacyChange(e.target.checked)}
               className="rounded border-gray-300 text-[#ff5700] focus:ring-[#ff5700]"
             />
             <span className="text-[#212529]">개인정보 처리방침 (필수)</span>
@@ -284,9 +345,9 @@ export default function SignupPage() {
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full rounded-xl py-3.5 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-          style={{ backgroundColor: ORANGE }}
+          disabled={loading || !isFormValid}
+          className="w-full rounded-xl py-3.5 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+          style={{ backgroundColor: isFormValid && !loading ? ORANGE : "#d1d5db" }}
         >
           {loading ? "가입 처리 중..." : "가입하기"}
         </button>
@@ -317,7 +378,7 @@ export default function SignupPage() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          구글 간편 로그인
+          구글로 시작하기
         </button>
       </div>
 

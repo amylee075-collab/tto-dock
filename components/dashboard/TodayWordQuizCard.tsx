@@ -63,48 +63,6 @@ export default function TodayWordQuizCard({
       </h2>
 
       <div className="flex-1 flex flex-col min-h-0 rounded-xl bg-white p-4 sm:p-5">
-        <div className="mb-4 flex items-center gap-2">
-          {Array.from({ length: TOTAL_QUESTIONS }).map((_, index) => {
-            const state = results[index];
-            const isCurrent = index === currentIndex;
-            const isNext =
-              index === currentIndex + 1 &&
-              answered !== null &&
-              currentIndex < TOTAL_QUESTIONS - 1;
-
-            const widthClass = "w-10 sm:w-16";
-            let barClass = `h-1.5 ${widthClass} rounded-full bg-gray-200 transition-colors`;
-            if (state === true) {
-              barClass = `h-1.5 ${widthClass} rounded-full bg-[#ff5700]`;
-            } else if (state === false) {
-              barClass = `h-1.5 ${widthClass} rounded-full bg-gray-300`;
-            } else if (isCurrent) {
-              barClass = `h-1.5 ${widthClass} rounded-full bg-[#ffb199]`;
-            }
-
-            return (
-              <button
-                key={index}
-                type="button"
-                className="flex items-center justify-center"
-                disabled={!isNext}
-                onClick={() => {
-                  if (isNext) {
-                    goNext();
-                  }
-                }}
-                aria-label={`문제 ${index + 1}`}
-              >
-                <span
-                  className={`${barClass} ${
-                    isNext ? "ring-2 ring-[#ff5700] ring-offset-1 animate-pulse" : ""
-                  }`}
-                />
-              </button>
-            );
-          })}
-        </div>
-
         <div className="mb-6">
           <p className="text-base sm:text-lg text-[#212529] font-medium leading-relaxed">
             {FIXED_SENTENCE_PREFIX}{" "}
@@ -133,21 +91,21 @@ export default function TodayWordQuizCard({
                 type="button"
                 disabled={answered !== null}
                 onClick={() => handleSelect(word)}
-                className={`flex-1 rounded-xl px-4 py-3.5 text-left font-semibold transition-colors disabled:pointer-events-none flex items-center gap-3 min-h-[52px]
+                className={`flex-1 rounded-xl px-4 py-3.5 text-left font-semibold transition-colors disabled:pointer-events-none flex items-center gap-3 min-h-[52px] border-2
                   ${!showResult
-                    ? "bg-gray-50 border border-gray-200 text-[#212529] hover:border-[#ff5700]/30 hover:bg-[#fffaf8]"
+                    ? "bg-gray-50 border-gray-200 text-[#212529] hover:border-[#ff5700]/30 hover:bg-[#fffaf8]"
                     : ""}
                   ${isCorrectChoice
-                    ? "bg-[#374151] border border-[#374151] text-white"
+                    ? "bg-[#374151] border-[#374151] text-white"
                     : ""}
                   ${isWrongChoice
-                    ? "bg-red-50 border-2 border-red-300 text-red-800"
+                    ? "bg-red-50 border-red-300 text-red-800"
                     : ""}
                   ${isUnselectedCorrect
-                    ? "bg-gray-50 border border-gray-200 text-gray-600"
+                    ? "bg-gray-50 border-gray-200 text-gray-600"
                     : ""}
                   ${showResult && !correct && !isSelected
-                    ? "bg-gray-50 border border-gray-200 text-gray-600"
+                    ? "bg-gray-50 border-gray-200 text-gray-600"
                     : ""}
                 `}
               >
@@ -166,6 +124,18 @@ export default function TodayWordQuizCard({
               </button>
             );
           })}
+        </div>
+
+        <div className="mt-4 min-h-[40px] flex items-center justify-center">
+          {answered !== null && currentIndex < TOTAL_QUESTIONS - 1 && (
+            <button
+              type="button"
+              onClick={goNext}
+              className="shrink-0 rounded-full bg-gray-200 text-[#212529] px-4 py-2 text-sm font-medium hover:bg-gray-300 transition-colors min-w-[100px] max-w-[140px]"
+            >
+              다음 퀴즈
+            </button>
+          )}
         </div>
       </div>
     </section>

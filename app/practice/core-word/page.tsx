@@ -13,7 +13,7 @@ export default async function CoreWordPracticePage() {
   const items = fromSupabase.length > 0 ? fromSupabase : CORE_WORD_QUIZ_ITEMS;
 
   return (
-    <div className="core-word-practice w-full max-w-screen-xl mx-auto px-4 md:px-0 mt-12 min-h-screen bg-[#FFFDF9]">
+    <div className="core-word-practice w-full max-w-screen-xl mx-auto px-4 md:px-0 mt-6 sm:mt-8 bg-transparent">
       <CoreWordPractice items={items} />
     </div>
   );

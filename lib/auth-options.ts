@@ -3,9 +3,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseService = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
+const supabaseAnon = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
+const supabaseService = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -17,16 +17,17 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        const email = credentials.email.trim().toLowerCase();
         const supabase = createClient(supabaseUrl, supabaseAnon);
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: credentials.email,
+          email,
           password: credentials.password,
         });
         if (error || !data.user) return null;
         return {
           id: data.user.id,
-          email: data.user.email ?? undefined,
-          name: data.user.user_metadata?.name ?? data.user.email ?? undefined,
+          email: data.user.email ?? email,
+          name: data.user.user_metadata?.name ?? data.user.email ?? email,
           image: data.user.user_metadata?.avatar_url ?? undefined,
         };
       },

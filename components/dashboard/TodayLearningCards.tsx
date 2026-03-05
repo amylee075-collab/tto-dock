@@ -6,13 +6,13 @@ const activities = [
   {
     key: "coreword" as const,
     title: "문해력 기초 훈련",
-    subtitle: "핵심 단어 찾기",
+    subtitle: "문장에서 핵심 단어 찾기",
     icon: "📋",
   },
   {
     key: "short" as const,
     title: "짧은 글 읽기",
-    subtitle: "한 편 읽기",
+    subtitle: "읽기 습관 다지기",
     icon: "📖",
   },
   {

@@ -4,6 +4,25 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { pickRandomTodayWord, type TodayWordItem, type WordType } from "@/lib/todayWordList";
 
+/** 예문 문자열에서 해당 단어를 강조한 React 노드 배열 반환 (bold + 주황색) */
+function emphasizeWordInExample(example: string, word: string): React.ReactNode {
+  if (!word.trim()) return example;
+  const parts = example.split(word);
+  if (parts.length <= 1) return example;
+  const nodes: React.ReactNode[] = [];
+  parts.forEach((part, i) => {
+    nodes.push(part);
+    if (i < parts.length - 1) {
+      nodes.push(
+        <span key={`w-${i}`} className="font-bold text-[#ff5700]">
+          {word}
+        </span>
+      );
+    }
+  });
+  return nodes;
+}
+
 const BADGE_STYLE: Record<WordType, string> = {
   순우리말: "bg-lime-200 text-lime-900",
   한자어: "bg-blue-200 text-blue-900",
@@ -106,14 +125,15 @@ export default function HeroWordQuiz({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
+              className="min-h-[2.5rem]"
             >
               {activeTab === "meaning" ? (
-                <p className="text-xl sm:text-2xl text-[#212529] font-medium leading-relaxed">
+                <p className="text-lg sm:text-xl text-[#212529] font-medium leading-relaxed">
                   {word.meaning}
                 </p>
               ) : (
-                <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
-                  {word.example}
+                <p className="text-lg sm:text-xl text-[#212529] font-medium leading-relaxed">
+                  {emphasizeWordInExample(word.example, word.word)}
                 </p>
               )}
             </motion.div>

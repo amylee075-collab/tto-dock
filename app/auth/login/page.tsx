@@ -81,9 +81,17 @@ function LoginForm() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-[#212529] mb-1.5">
-            비밀번호
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label htmlFor="password" className="block text-sm font-medium text-[#212529]">
+              비밀번호
+            </label>
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm text-[#ff5700] hover:underline"
+            >
+              비밀번호를 잊으셨나요?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"

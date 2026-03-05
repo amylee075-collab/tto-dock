@@ -53,6 +53,16 @@ function UserIcon({ className }: { className?: string }) {
   );
 }
 
+/** 한글 4자 이상 → 3자 + "...", 영어 7자 이상 → 6자 + "...", 그 외 전체 */
+function truncateDisplayName(name: string): string {
+  if (!name || !name.trim()) return name;
+  const trimmed = name.trim();
+  const koreanCount = (trimmed.match(/[가-힣]/g) || []).length;
+  if (koreanCount >= 4) return trimmed.slice(0, 3) + "...";
+  if (trimmed.length >= 7) return trimmed.slice(0, 6) + "...";
+  return trimmed;
+}
+
 export default function SideNav() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
@@ -163,23 +173,37 @@ export default function SideNav() {
               {!collapsed && "확인 중..."}
             </span>
           ) : session ? (
-            <div className={`flex h-12 items-center w-full ${collapsed ? "justify-center" : ""}`}>
-              {!collapsed && (
-                <span className="flex-1 min-w-0 truncate px-4 text-sm text-gray-600" title={session.user?.email ?? undefined}>
-                  {session.user?.name || session.user?.email || "회원"}
-                </span>
+            <div className={`flex h-12 items-center gap-3 w-full min-w-0 ${collapsed ? "justify-center" : "px-1"}`}>
+              {collapsed ? (
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="flex items-center justify-center w-10 h-10 rounded-full shrink-0 text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00] transition-colors"
+                  title="로그아웃"
+                >
+                  <span className="text-xl leading-none" aria-hidden>🚪</span>
+                </button>
+              ) : (
+                <>
+                  <span className="shrink-0 flex items-center justify-center">
+                    <UserIcon className="w-9 h-9" />
+                  </span>
+                  <span
+                    className="flex-1 min-w-0 truncate text-sm text-[#212529]"
+                    title={session.user?.email ?? undefined}
+                  >
+                    {truncateDisplayName(session.user?.name || session.user?.email || "회원")}님
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="shrink-0 text-sm text-[#212529] underline hover:text-[#FF5C00] transition-colors"
+                    title="로그아웃"
+                  >
+                    로그아웃
+                  </button>
+                </>
               )}
-              <button
-                type="button"
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className={`flex items-center rounded-xl text-lg font-semibold transition-colors text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00] ${
-                  collapsed ? "justify-center w-10 h-10 rounded-full shrink-0" : "gap-4 px-4"
-                }`}
-                title="로그아웃"
-              >
-                <span className="shrink-0 text-xl leading-none" aria-hidden>🚪</span>
-                {!collapsed && <span>로그아웃</span>}
-              </button>
             </div>
           ) : (
             <Link

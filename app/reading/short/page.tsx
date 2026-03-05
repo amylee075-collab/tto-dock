@@ -1,13 +1,6 @@
-import Link from "next/link";
 import { shortStories } from "@/lib/data";
 import { getContentsByTypeFromSupabase } from "@/lib/content-from-supabase";
-import ThumbnailWithFallback from "@/components/reading/ThumbnailWithFallback";
-
-function getShortDescription(content: string, maxLen = 80) {
-  const trimmed = content.replace(/\s+/g, " ").trim();
-  if (trimmed.length <= maxLen) return trimmed;
-  return trimmed.slice(0, maxLen) + "…";
-}
+import StoryCard from "@/components/reading/StoryCard";
 
 export default async function ShortReadingListPage() {
   const fromSupabase = await getContentsByTypeFromSupabase("short");
@@ -25,34 +18,13 @@ export default async function ShortReadingListPage() {
       </p>
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {ordered.map((story, index) => (
-          <li
+          <StoryCard
             key={story.id}
-            className="flex flex-col rounded-xl border border-gray-200 bg-white overflow-hidden min-w-0 w-full"
-          >
-            <div className="aspect-video relative w-full overflow-hidden bg-gray-100">
-              <ThumbnailWithFallback
-                src={story.thumbnail}
-                alt=""
-                priority={index < 3}
-                sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="p-4 sm:p-5 flex flex-col flex-1 min-w-0">
-              <h2 className="font-bold text-lg text-[#212529] mb-2">
-                {story.title}
-              </h2>
-              <p className="text-sm text-gray-600 flex-1 line-clamp-3 mb-4 min-w-0">
-                {getShortDescription(story.content)}
-              </p>
-              <Link
-                href={`/reading/short/${story.id}`}
-                className="inline-flex justify-center items-center rounded-xl px-5 py-3 font-bold text-white shadow-sm hover:opacity-90 transition-opacity bg-[#ff5700]"
-              >
-                학습 시작
-              </Link>
-            </div>
-          </li>
+            href={`/reading/short/${story.id}`}
+            thumbnail={story.thumbnail}
+            title={story.title}
+            badges={story.badges?.length ? story.badges : ["짧은 글"]}
+          />
         ))}
       </ul>
     </div>

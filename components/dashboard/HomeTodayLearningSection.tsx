@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import type { TodayWordItem } from "@/lib/todayWordList";
 import type { RecommendedReading } from "@/lib/data";
 
@@ -34,16 +35,22 @@ export default function HomeTodayLearningSection({
             className="block w-full h-full min-h-[220px] flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white p-0 hover:border-[#ff5700]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff5700]/30"
           >
             <span
-              className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-xl bg-[#fff5f0] text-3xl sm:text-4xl mb-4"
+              className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-xl bg-[#fff5f0] mb-4 overflow-hidden"
               aria-hidden
             >
-              📋
+              <Image
+                src="/images/character.png"
+                alt=""
+                width={80}
+                height={80}
+                className="w-full h-full object-contain object-center"
+              />
             </span>
             <span className="font-extrabold text-xl sm:text-2xl text-[#212529] text-center">
               문해력 기초 훈련
             </span>
             <span className="text-base text-gray-500 font-medium mt-2 text-center">
-              핵심 단어 찾기
+              문장에서 핵심 단어 찾기
             </span>
           </Link>
         </li>
@@ -56,7 +63,7 @@ export default function HomeTodayLearningSection({
               className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-xl bg-[#fff5f0] text-3xl sm:text-4xl mb-4"
               aria-hidden
             >
-              {recommended.type === "long" ? "📚" : recommended.type === "category" ? "🧩" : "📰"}
+              📕
             </span>
             <span className="font-extrabold text-xl sm:text-2xl text-[#212529] text-center">
               추천 글 읽기
