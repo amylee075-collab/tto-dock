@@ -51,19 +51,8 @@ export const authOptions: AuthOptions = {
         (session.user as { id?: string }).id = t.id as string;
         (session as { provider?: string }).provider = t.provider as string;
       }
-      if (t.id && supabaseService) {
-        try {
-          const supabase = createClient(supabaseUrl, supabaseService);
-          const { data } = await supabase
-            .from("user_profiles")
-            .select("terms_agreed_at")
-            .eq("auth_user_id", t.id)
-            .single();
-          (session as { needsTermsAgreement?: boolean }).needsTermsAgreement = !data?.terms_agreed_at;
-        } catch {
-          (session as { needsTermsAgreement?: boolean }).needsTermsAgreement = true;
-        }
-      }
+      // 더 이상 약관 동의 여부로 읽기 페이지 접근을 막지 않습니다.
+      // 회원가입 시 약관 체크박스로 충분히 동의 받는 것으로 간주합니다.
       return session;
     },
   },

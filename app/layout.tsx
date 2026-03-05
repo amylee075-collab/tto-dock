@@ -9,7 +9,6 @@ import { BreadcrumbProvider } from "@/contexts/BreadcrumbContext";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ChallengeTTLGuard from "@/components/ChallengeTTLGuard";
 import SessionProvider from "@/components/providers/SessionProvider";
-import AuthTermsRedirect from "@/components/auth/AuthTermsRedirect";
 import MigrationPrompt from "@/components/auth/MigrationPrompt";
 
 export const metadata: Metadata = {
@@ -26,7 +25,6 @@ export default function RootLayout({
     <html lang="ko">
       <body className="h-screen antialiased font-pretendard bg-white overflow-hidden">
         <SessionProvider>
-          <AuthTermsRedirect />
           <MigrationPrompt />
           <SidebarProvider>
             <SideNav />
