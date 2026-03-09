@@ -1,5 +1,6 @@
 import type { TodayWordItem, WordType } from "@/lib/todayWordList";
 import { getSupabase } from "@/lib/supabase";
+import { forceDynamic } from "@/lib/force-dynamic";
 
 type Row = { id: string; word: string; meaning: string; example: string; type: string };
 
@@ -15,6 +16,7 @@ function rowToItem(row: Row): TodayWordItem {
 
 /** Supabase today_words 테이블에서 전체 목록 조회. 없으면 빈 배열 */
 export async function getTodayWordsFromSupabase(): Promise<TodayWordItem[]> {
+  await forceDynamic();
   const supabase = getSupabase();
   if (!supabase) return [];
 

@@ -2,6 +2,10 @@ import CoreWordPractice from "@/components/practice/CoreWordPractice";
 import { getCoreWordQuizFromSupabase } from "@/lib/core-word-quiz-from-supabase";
 import { CORE_WORD_QUIZ_ITEMS } from "@/lib/coreWordPractice";
 
+/** 정적 배포 방지·캐시 미사용 — 문해력 기초 훈련(핵심 단어) 어드민 수정 즉시 반영 */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata = {
   title: "핵심 단어 찾기 | 또독",
   description:

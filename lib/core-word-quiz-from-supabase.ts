@@ -1,5 +1,6 @@
 import type { CoreWordQuizItem } from "@/lib/coreWordPractice";
 import { getSupabase } from "@/lib/supabase";
+import { forceDynamic } from "@/lib/force-dynamic";
 
 type Row = {
   id: string;
@@ -22,6 +23,7 @@ function rowToItem(row: Row, index: number): CoreWordQuizItem {
 
 /** Supabase core_word_quiz 테이블에서 전체 문항 조회. 없으면 빈 배열 */
 export async function getCoreWordQuizFromSupabase(): Promise<CoreWordQuizItem[]> {
+  await forceDynamic();
   const supabase = getSupabase();
   if (!supabase) return [];
 

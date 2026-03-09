@@ -6,6 +6,10 @@ import { getTodayWordsFromSupabase } from "@/lib/today-words-from-supabase";
 import { TODAY_WORD_LIST } from "@/lib/todayWordList";
 import { getRandomRecommendedReading } from "@/lib/data";
 
+/** 정적 배포 방지·캐시 미사용 — 오늘의 단어 등 어드민 수정 즉시 반영 */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function HomePage() {
   const fromSupabase = await getTodayWordsFromSupabase();
   const wordList = fromSupabase.length > 0 ? fromSupabase : TODAY_WORD_LIST;

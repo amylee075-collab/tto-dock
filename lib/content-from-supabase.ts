@@ -1,5 +1,6 @@
 import type { ShortStory } from "@/lib/data";
 import { getSupabase } from "@/lib/supabase";
+import { forceDynamic } from "@/lib/force-dynamic";
 
 type ContentRow = {
   id: string;
@@ -50,6 +51,7 @@ export async function getContentFromSupabase(
   type: "short" | "category" | "digital",
   id: string
 ): Promise<ShortStory | null> {
+  await forceDynamic();
   console.log("[Supabase fetch] getContentFromSupabase", { type, id, ts: Date.now() });
   const supabase = getSupabase();
   if (!supabase) return null;
@@ -69,6 +71,7 @@ export async function getContentFromSupabase(
 export async function getContentsByTypeFromSupabase(
   type: "short" | "category" | "digital"
 ): Promise<ShortStory[]> {
+  await forceDynamic();
   console.log("[Supabase fetch] getContentsByTypeFromSupabase", { type, ts: Date.now() });
   const supabase = getSupabase();
   if (!supabase) return [];
