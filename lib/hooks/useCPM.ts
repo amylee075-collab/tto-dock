@@ -203,7 +203,7 @@ export function useCPM(
     const prev = prevCenterIndexRef.current;
     const curr = centerIndex ?? -1;
 
-    if (prev !== curr && prev >= 0) {
+    if (prev != null && prev !== curr && prev >= 0) {
       const enterTime = lastEnterTimeRef.current ?? startTimeRef.current!;
       const dwellSec = (now - enterTime) / 1000;
       effectiveTimeRef.current += Math.max(dwellSec, MIN_DWELL_SEC);
