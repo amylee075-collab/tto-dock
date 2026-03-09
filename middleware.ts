@@ -14,4 +14,5 @@ export default withAuth({
 
 export const config = {
   matcher: ["/mypage"],
+  // /reading/* 경로는 matcher에 없음 → 캐싱/리다이렉트 없이 통과
 };

@@ -2,6 +2,10 @@ import { shortStories } from "@/lib/data";
 import { getContentsByTypeFromSupabase } from "@/lib/content-from-supabase";
 import StoryCard from "@/components/reading/StoryCard";
 
+/** 정적 배포 방지·캐시 미사용 — 어드민 수정사항 즉시 반영 */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function ShortReadingListPage() {
   const fromSupabase = await getContentsByTypeFromSupabase("short");
   const localIds = new Set(shortStories.map((s) => s.id));

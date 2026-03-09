@@ -7,6 +7,10 @@ import ReadingPageLayout from "@/components/reading/ReadingPageLayout";
 import SetBreadcrumbTitle from "@/components/SetBreadcrumbTitle";
 import { notFound } from "next/navigation";
 
+/** 정적 배포 방지·캐시 미사용 — 어드민 수정사항 즉시 반영 */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 /** 기존 '긴 글' 지문(토끼와 거북이 등)으로 직접 접속 시 통합된 긴 글 목록으로 리다이렉트 */
 const LONG_READING_HREF = "/reading/long";
 

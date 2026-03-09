@@ -2,6 +2,10 @@ import { digitalLiteracy } from "@/lib/data";
 import { getContentsByTypeFromSupabase } from "@/lib/content-from-supabase";
 import StoryCard from "@/components/reading/StoryCard";
 
+/** 정적 배포 방지·캐시 미사용 — 어드민 수정사항 즉시 반영 */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata = {
   title: "디지털 문해력 | 또독",
   description: "신문 기사와 미디어 비판 글을 읽고 퀴즈를 풀어 보세요.",

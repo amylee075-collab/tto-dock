@@ -50,6 +50,7 @@ export async function getContentFromSupabase(
   type: "short" | "category" | "digital",
   id: string
 ): Promise<ShortStory | null> {
+  console.log("[Supabase fetch] getContentFromSupabase", { type, id, ts: Date.now() });
   const supabase = getSupabase();
   if (!supabase) return null;
 
@@ -68,6 +69,7 @@ export async function getContentFromSupabase(
 export async function getContentsByTypeFromSupabase(
   type: "short" | "category" | "digital"
 ): Promise<ShortStory[]> {
+  console.log("[Supabase fetch] getContentsByTypeFromSupabase", { type, ts: Date.now() });
   const supabase = getSupabase();
   if (!supabase) return [];
 

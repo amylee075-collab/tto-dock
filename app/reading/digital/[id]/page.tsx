@@ -4,6 +4,10 @@ import { getContentFromSupabase } from "@/lib/content-from-supabase";
 import ShortStoryPageClient from "@/components/reading/ShortStoryPageClient";
 import SetBreadcrumbTitle from "@/components/SetBreadcrumbTitle";
 
+/** 정적 배포 방지·캐시 미사용 — 어드민 수정사항 즉시 반영 */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }
@@ -11,13 +15,20 @@ interface PageProps {
 export default async function DigitalStoryPage({ params }: PageProps) {
   const { id } = await params;
   const storyFromSupabase = await getContentFromSupabase("digital", id);
-  const story = storyFromSupabase ?? getDigitalStoryById(id);
+  const localStory = getDigitalStoryById(id);
+  const story = storyFromSupabase ?? localStory;
 
   if (!story) notFound();
 
+  const hasQuizFromSource =
+    story.readQuizzes?.length > 0 && story.coreQuiz?.question;
+  const mergedStory = !hasQuizFromSource && localStory
+    ? { ...story, coreQuiz: localStory.coreQuiz, readQuizzes: localStory.readQuizzes }
+    : story;
+
   return (
-    <SetBreadcrumbTitle title={story.title}>
-      <ShortStoryPageClient story={story} source="digital" />
+    <SetBreadcrumbTitle title={mergedStory.title}>
+      <ShortStoryPageClient story={mergedStory} source="digital" />
     </SetBreadcrumbTitle>
   );
 }

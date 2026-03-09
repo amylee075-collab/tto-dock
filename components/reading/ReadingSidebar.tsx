@@ -32,6 +32,14 @@ const tierClass: Record<CPMTier, string> = {
   "매우 빠름": "bg-red-50 text-red-700 border-red-200",
 };
 
+/** 읽기 속도 게이지 바 색상 (티어별 실시간 연동) */
+const tierGaugeColor: Record<CPMTier, string> = {
+  차근차근: "#3B82F6",
+  안정적: "#10B981",
+  빠름: "#F59E0B",
+  "매우 빠름": "#A855F7",
+};
+
 export default function ReadingSidebar({
   cpm,
   tier,
@@ -118,7 +126,7 @@ export default function ReadingSidebar({
           </span>
         </div>
 
-        {/* 2. 읽은 문장 (Progress) */}
+        {/* 2. 읽은 문장 (목표 달성형) — 수치 바로 아래 주황색 진행 바 + 총 문장 수만큼 세로 눈금 */}
         <div className="mb-4">
           <p className="font-extrabold text-xl text-[#212529] tabular-nums">
             읽은 문장{" "}
@@ -126,23 +134,37 @@ export default function ReadingSidebar({
               {readCount} / {totalSentences}
             </span>
           </p>
-          <div className="mt-2 h-3 rounded-full bg-gray-100 overflow-hidden">
+          <div className="mt-2 relative h-[8px] rounded-full bg-gray-100 overflow-hidden">
             <motion.div
-              className="h-full rounded-full"
+              className="h-full rounded-full absolute left-0 top-0"
               style={{ backgroundColor: ORANGE }}
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             />
+            {/* 총 문장 수만큼 등분된 세로 눈금 (흐린 흰색) */}
+            {totalSentences > 1 &&
+              Array.from({ length: totalSentences - 1 }, (_, i) => (
+                <div
+                  key={i}
+                  className="absolute top-0 bottom-0 w-px bg-white/50 pointer-events-none"
+                  style={{ left: `${((i + 1) / totalSentences) * 100}%` }}
+                  aria-hidden
+                />
+              ))}
           </div>
         </div>
 
-        {/* 3. 읽기 속도 (CPM) + 상태 태그 + 캐릭터 피드백 */}
-        <div className="pt-4 border-t border-gray-100">
-          <p className="text-base font-medium text-gray-500 mb-2">읽기 속도</p>
-          <div className="flex items-center gap-2 mb-2">
+        {/* 3. 읽기 속도 (CPM) — 수직 적층, 간격 1.3rem 통일 */}
+        <div
+          className="pt-4 border-t border-gray-100 flex flex-col"
+          style={{ gap: "1.3rem" }}
+        >
+          {/* 첫 번째 줄: 타이틀 + 글자/분 수치 (폰트 사이즈·굵기 유지) */}
+          <div className="flex flex-col gap-0.5">
+            <p className="text-base font-medium text-gray-500">읽기 속도</p>
             <motion.p
-              className="font-extrabold text-2xl sm:text-3xl text-[#212529] tabular-nums min-w-[4rem]"
+              className="font-extrabold text-2xl sm:text-3xl text-[#212529] tabular-nums"
               initial={false}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
@@ -152,38 +174,48 @@ export default function ReadingSidebar({
                   측정 중...
                 </span>
               ) : (
-                <motion.span
-                  key={displayCpm}
-                  initial={false}
-                  transition={{ duration: 0.15 }}
-                >
-                  {displayCpm}
-                </motion.span>
-              )}
-              {!isMeasuring && (
-                <span className="text-lg font-medium text-gray-500 ml-1">
-                  글자 / 분
-                </span>
+                <>
+                  <motion.span
+                    key={displayCpm}
+                    initial={false}
+                    transition={{ duration: 0.15 }}
+                  >
+                    {displayCpm}
+                  </motion.span>
+                  <span className="text-lg font-medium text-gray-500 ml-1">
+                    글자 / 분
+                  </span>
+                </>
               )}
             </motion.p>
-            {!isMeasuring && (
-              <span
-                className={`inline-flex rounded-lg border px-2.5 py-1 text-sm font-medium ${tierClass[tier]}`}
-              >
-                {tierLabel}
-              </span>
-            )}
           </div>
-          <div className="h-2 rounded-full bg-gray-100 overflow-hidden mb-3">
+
+          {/* 두 번째 줄: 티어 라벨 (시인성 강화 — 패딩 확대, 전체 너비와 조화) */}
+          {!isMeasuring && (
+            <span
+              className={`inline-flex w-fit max-w-full rounded-lg border px-3 py-1.5 text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis ${tierClass[tier]}`}
+              title={tierLabel}
+              style={{ minWidth: 0 }}
+            >
+              {tierLabel}
+            </span>
+          )}
+
+          {/* 세 번째 줄: 읽기 속도 상태형 게이지 (얇은 바, 티어별 색상, 부드러운 애니메이션) */}
+          <div className="h-1 rounded-full bg-gray-100 overflow-hidden">
             <motion.div
               className="h-full rounded-full"
-              style={{ backgroundColor: ORANGE }}
+              style={{
+                backgroundColor: isMeasuring ? "#E5E7EB" : tierGaugeColor[tier],
+              }}
               initial={false}
               animate={{ width: `${cpmGaugePercent}%` }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
             />
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* 네 번째 줄: 또독이 아이콘 + 피드백 메시지 (한 줄 flex-row, 수직 중앙 정렬) */}
+          <div className="flex flex-row items-center gap-3 min-w-0">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-100 bg-[#fff5f0]">
               {!avatarError ? (
                 <Image
@@ -200,7 +232,7 @@ export default function ReadingSidebar({
                 </span>
               )}
             </span>
-            <p className="text-base font-medium text-[#212529] leading-snug">
+            <p className="text-base font-medium text-[#212529] leading-snug min-w-0 flex-1 break-words">
               {isMeasuring
                 ? "몇 문장 더 읽으면 속도가 표시돼요."
                 : tierMessage}

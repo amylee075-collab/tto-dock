@@ -258,12 +258,12 @@ export default function CoreWordPractice({ items: itemsProp }: Props) {
         key={i}
         type="button"
         onClick={() => handleKeywordClick(i, seg.isCorrect, seg.wordKey)}
-        className={`inline m-0 border-0 p-0 text-xl md:text-3xl leading-inherit tracking-normal outline-none ring-0 focus:outline-none focus:ring-0 text-[#212529] font-medium bg-transparent ${isWrong ? "animate-shake text-red-700" : ""}`}
+        className={`inline m-0 border-0 p-0 text-[1.44rem] md:text-[1.72rem] leading-inherit tracking-normal outline-none ring-0 focus:outline-none focus:ring-0 text-[#212529] font-medium bg-transparent ${isWrong ? "animate-shake text-red-700" : ""}`}
         style={{ margin: 0, padding: 0 }}
         whileTap={!feedback ? { scale: 0.99 } : {}}
       >
         <span
-          className={`training-word-card ${isCorrectSelected ? "selected" : isWrong ? "wrong" : ""}`}
+          className={`training-word-card text-[1.44rem] md:text-[1.72rem] ${isCorrectSelected ? "selected" : isWrong ? "wrong" : ""}`}
           style={{ margin: 0 }}
         >
           {seg.content}
@@ -273,14 +273,14 @@ export default function CoreWordPractice({ items: itemsProp }: Props) {
   });
 
   return (
-    <div className="w-full flex flex-col min-h-0">
+    <div className="w-full flex flex-col min-h-0 px-6">
       <header className="pt-2 sm:pt-0 pb-0 shrink-0">
         <div className="w-full">
           <h1 className="font-extrabold text-xl sm:text-2xl text-[#212529] mb-1.5">
             핵심 단어 찾기
           </h1>
           {!showCompletion && (
-            <p className="core-word-instruction font-medium mb-2" style={{ fontSize: "1.4rem", color: "#ff5700" }}>
+            <p className="core-word-instruction font-medium mb-3 text-[#ff5700]" style={{ fontSize: "1.4rem" }}>
               문장을 또박또박 읽고 핵심 단어를 찾아 클릭해 보세요!
             </p>
           )}
@@ -299,7 +299,7 @@ export default function CoreWordPractice({ items: itemsProp }: Props) {
         </div>
       </header>
 
-      <section className="flex flex-col gap-y-5 w-full pb-6 min-h-0">
+      <section className="flex flex-col gap-y-5 w-full pb-6 min-h-0 mt-4">
         <div className="w-full min-w-0 min-h-0">
           <AnimatePresence mode="wait">
             {showCompletion ? (
@@ -336,7 +336,7 @@ export default function CoreWordPractice({ items: itemsProp }: Props) {
                 )}
                 <div className="relative p-4 sm:p-5 md:p-6 overflow-y-auto min-h-0 flex-1">
                   <p
-                    className="text-xl md:text-2xl text-[#212529] tracking-normal break-keep leading-[2] md:leading-[2.5]"
+                    className="text-[1.44rem] md:text-[1.72rem] text-[#212529] font-medium tracking-normal break-keep leading-[2] md:leading-[2.5] [&_.training-word-card]:text-[1.44rem] [&_.training-word-card]:md:text-[1.72rem]"
                     style={{ margin: 0, padding: 0 }}
                   >
                     {sentenceNodes}

@@ -5,6 +5,7 @@ import type { ShortStory } from "@/lib/data";
 import { addReadingResult, addQuizResult } from "@/lib/challenge-storage";
 import ShortStoryReading from "./ShortStoryReading";
 import ShortStoryQuizContainer from "./ShortStoryQuizContainer";
+import QuizErrorBoundary from "./QuizErrorBoundary";
 import type { QuizCompletePayload } from "./ShortStoryQuizContainer";
 
 type PageStep = "READING" | "QUIZ";
@@ -84,12 +85,14 @@ export default function ShortStoryPageClient({
   }
 
   return (
-    <ShortStoryQuizContainer
-      story={story}
-      onBack={() => setStep("READING")}
-      resultCpm={resultCpm}
-      onComplete={isChallengeTracked ? handleComplete : undefined}
-      listHref={listHref}
-    />
+    <QuizErrorBoundary onBack={() => setStep("READING")}>
+      <ShortStoryQuizContainer
+        story={story}
+        onBack={() => setStep("READING")}
+        resultCpm={resultCpm}
+        onComplete={isChallengeTracked ? handleComplete : undefined}
+        listHref={listHref}
+      />
+    </QuizErrorBoundary>
   );
 }

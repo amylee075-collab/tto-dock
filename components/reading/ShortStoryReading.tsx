@@ -173,8 +173,9 @@ export default function ShortStoryReading({
     setStep("READING_QUIZ");
   };
 
-  const currentMcq = readQuizzes[mcqIndex];
-  const mcqDone = mcqIndex >= readQuizzes.length;
+  const safeReadQuizzes = Array.isArray(readQuizzes) ? readQuizzes : [];
+  const currentMcq = safeReadQuizzes[mcqIndex];
+  const mcqDone = mcqIndex >= safeReadQuizzes.length;
   const handleMcqSelect = (optionIndex: number) => {
     if (mcqFeedback !== null) return;
     const correct = optionIndex === currentMcq.ans;
@@ -187,14 +188,14 @@ export default function ShortStoryReading({
   };
   const handleMcqNext = () => {
     setMcqFeedback(null);
-    if (mcqIndex + 1 >= readQuizzes.length) {
+    if (mcqIndex + 1 >= safeReadQuizzes.length) {
       setStep("RESULT");
     } else {
       setMcqIndex((i) => i + 1);
     }
   };
 
-  const totalQuiz = 1 + readQuizzes.length;
+  const totalQuiz = 1 + safeReadQuizzes.length;
   const totalCorrect = (coreCorrect ? 1 : 0) + mcqCorrectCount;
   const quizProgressIndex = step === "CORE_QUIZ" ? 1 : step === "READING_QUIZ" ? mcqIndex + 2 : 1;
   const quizProgressPercent = totalQuiz > 0 ? (quizProgressIndex / totalQuiz) * 100 : 0;
@@ -535,7 +536,7 @@ export default function ShortStoryReading({
                   onClick={handleMcqNext}
                   className="mt-6 rounded-xl px-8 py-4 min-h-[3.25rem] font-bold text-white bg-[#ff5700] hover:bg-[#e64d00] active:scale-[0.98] transition-all text-lg"
                 >
-                  {mcqIndex + 1 < readQuizzes.length ? "다음 문제" : "결과 보기"}
+                  {mcqIndex + 1 < safeReadQuizzes.length ? "다음 문제" : "결과 보기"}
                 </button>
               )}
             </div>

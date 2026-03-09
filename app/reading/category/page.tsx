@@ -9,6 +9,10 @@ const SECTION_ORDER: readonly ("과학" | "역사" | "사회")[] = [
   "역사",
 ];
 
+/** 정적 배포 방지·캐시 미사용 — 어드민 수정사항 즉시 반영 */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata = {
   title: "분야별 글 읽기 | 또독",
   description: "과학, 역사, 사회 등 다양한 주제의 글을 읽어 보세요.",
