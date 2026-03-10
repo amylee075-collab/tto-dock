@@ -26,11 +26,12 @@ export default function ClientFetchTest() {
     setLoading(true);
     setError(null);
     const at = new Date().toISOString();
-    supabase
-      .from("today_words")
-      .select("id, word, meaning, example, type")
-      .order("created_at", { ascending: false })
-      .then(({ data: rows, error: e }) => {
+    (async () => {
+      try {
+        const { data: rows, error: e } = await supabase
+          .from("today_words")
+          .select("id, word, meaning, example, type")
+          .order("created_at", { ascending: false });
         if (cancelled) return;
         setFetchedAt(at);
         if (e) {
@@ -40,10 +41,10 @@ export default function ClientFetchTest() {
           setData((rows as Row[]) ?? []);
           setError(null);
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
