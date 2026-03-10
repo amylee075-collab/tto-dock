@@ -58,12 +58,33 @@ function parseDifficulty(value: unknown): number | undefined {
 function parseCoreQuiz(v: unknown): ShortStoryCoreQuiz {
   if (v == null || typeof v !== "object") return { question: "", answer: "" };
   const o = v as Record<string, unknown>;
-  const question = typeof o.question === "string" ? o.question : "";
-  const answer = typeof o.answer === "string" ? o.answer : "";
-  const sentence = typeof o.sentence === "string" ? o.sentence : undefined;
+  // DB/레거시 키 호환:
+  // - question | problem_sentence
+  // - answer | correct_answer
+  // - similarAnswers | similar_answers
+  const question =
+    typeof o.question === "string"
+      ? o.question
+      : typeof o.problem_sentence === "string"
+        ? o.problem_sentence
+        : "";
+  const answer =
+    typeof o.answer === "string"
+      ? o.answer
+      : typeof o.correct_answer === "string"
+        ? o.correct_answer
+        : "";
+  const sentence =
+    typeof o.sentence === "string"
+      ? o.sentence
+      : typeof o.problem_sentence === "string"
+        ? o.problem_sentence
+        : undefined;
   const similarAnswers =
     Array.isArray(o.similarAnswers) && o.similarAnswers.every((x) => typeof x === "string")
       ? (o.similarAnswers as string[])
+      : Array.isArray(o.similar_answers) && o.similar_answers.every((x) => typeof x === "string")
+        ? (o.similar_answers as string[])
       : undefined;
   return { question, answer, ...(sentence && { sentence }), ...(similarAnswers?.length && { similarAnswers }) };
 }
@@ -73,28 +94,75 @@ function parseReadQuizzes(v: unknown): ShortStoryReadQuiz[] {
   return v
     .filter((item): item is Record<string, unknown> => item != null && typeof item === "object")
     .map((o) => {
-      const q = typeof o.q === "string" ? o.q : "";
+      const q =
+        typeof o.q === "string"
+          ? o.q
+          : typeof o.question === "string"
+            ? o.question
+            : "";
       const opts = Array.isArray(o.options) ? o.options.filter((x) => typeof x === "string") as string[] : [];
-      const ans = typeof o.ans === "number" && Number.isInteger(o.ans) && o.ans >= 0 && o.ans < opts.length ? o.ans : 0;
+      const rawAns =
+        typeof o.ans === "number"
+          ? o.ans
+          : typeof o.correct_answer === "number"
+            ? o.correct_answer
+            : undefined;
+      const ans =
+        typeof rawAns === "number" &&
+        Number.isInteger(rawAns) &&
+        rawAns >= 0 &&
+        rawAns < opts.length
+          ? rawAns
+          : 0;
       return { q, options: opts, ans };
     })
     .filter((item) => item.q && item.options.length >= 2);
 }
 
-function parseSummaryQuiz(v: unknown): ShortStorySummaryQuiz | undefined {
-  if (v == null || typeof v !== "object") return undefined;
-  const o = v as Record<string, unknown>;
-  const requiredKeywords =
-    Array.isArray(o.requiredKeywords) && o.requiredKeywords.every((x) => typeof x === "string")
-      ? (o.requiredKeywords as string[])
-      : undefined;
-  const exampleAnswer = typeof o.exampleAnswer === "string" ? o.exampleAnswer : undefined;
-  const charLimitByGrade =
-    o.charLimitByGrade != null && typeof o.charLimitByGrade === "object" && !Array.isArray(o.charLimitByGrade)
-      ? (o.charLimitByGrade as Record<string, number>)
-      : undefined;
-  if (!requiredKeywords?.length && !exampleAnswer && !charLimitByGrade) return undefined;
-  return { ...(requiredKeywords?.length && { requiredKeywords }), ...(exampleAnswer && { exampleAnswer }), ...(charLimitByGrade && { charLimitByGrade }) };
+function parseSummaryQuiz(v: unknown): ShortStorySummaryQuiz[] | undefined {
+  if (v == null) return undefined;
+  const rawArray: unknown[] =
+    Array.isArray(v) ? v : typeof v === "object" ? [v] : [];
+  const items: ShortStorySummaryQuiz[] = rawArray
+    .filter((item) => item != null && typeof item === "object")
+    .map((item) => {
+      const o = item as Record<string, unknown>;
+      const question =
+        typeof o.question === "string"
+          ? o.question
+          : typeof o.prompt === "string"
+            ? o.prompt
+            : undefined;
+      const modelAnswer =
+        typeof o.model_answer === "string"
+          ? o.model_answer
+          : typeof o.modelAnswer === "string"
+            ? o.modelAnswer
+            : typeof o.exampleAnswer === "string"
+              ? o.exampleAnswer
+              : undefined;
+      const requiredKeywords =
+        Array.isArray(o.requiredKeywords) && o.requiredKeywords.every((x) => typeof x === "string")
+          ? (o.requiredKeywords as string[])
+          : undefined;
+      const exampleAnswer = typeof o.exampleAnswer === "string" ? o.exampleAnswer : undefined;
+      const charLimitByGrade =
+        o.charLimitByGrade != null && typeof o.charLimitByGrade === "object" && !Array.isArray(o.charLimitByGrade)
+          ? (o.charLimitByGrade as Record<string, number>)
+          : undefined;
+      if (!question && !modelAnswer && !requiredKeywords?.length && !exampleAnswer && !charLimitByGrade) {
+        return null;
+      }
+      return {
+        ...(question && { question }),
+        ...(modelAnswer && { modelAnswer }),
+        ...(requiredKeywords?.length && { requiredKeywords }),
+        ...(exampleAnswer && { exampleAnswer }),
+        ...(charLimitByGrade && { charLimitByGrade }),
+      } as ShortStorySummaryQuiz;
+    })
+    .filter((x): x is ShortStorySummaryQuiz => x != null);
+  return items.length > 0 ? items : undefined;
 }
 
 function rowToShortStory(row: ContentRow): ShortStory {
@@ -129,7 +197,11 @@ function isValidContentType(v: unknown): v is ContentTypeSupabase {
   return typeof v === "string" && (CONTENT_TYPES as readonly string[]).includes(v);
 }
 
-/** Supabase contents 테이블에서 type·id로 1건 조회. PGRST100 방지: 서버에는 .eq('id')만 사용, type은 조회 후 검증 */
+/**
+ * Supabase contents 테이블에서 type·id로 1건 조회.
+ * .select('*')로 모든 컬럼 조회 — core_quiz, read_quizzes, summary_quiz 포함.
+ * PGRST100 방지: 서버에는 .eq('id')만 사용, type은 조회 후 검증.
+ */
 export async function getContentFromSupabase(
   type: ContentTypeSupabase,
   id: string
@@ -163,6 +235,13 @@ export async function getContentFromSupabase(
 
   if (error || !data) return null;
   const row = data as ContentRow;
+  console.log("FETCHED CONTENT:", {
+    id: row?.id,
+    title: row?.title,
+    core_quiz: row?.core_quiz,
+    read_quizzes: row?.read_quizzes,
+    summary_quiz: row?.summary_quiz,
+  });
   const rowType = row.type != null ? String(row.type).toLowerCase() : "";
   if (rowType !== type) return null;
   return rowToShortStory(row);
@@ -170,6 +249,7 @@ export async function getContentFromSupabase(
 
 /**
  * Supabase에서 type별 목록 조회.
+ * .select('*')로 모든 컬럼 조회 — core_quiz, read_quizzes, summary_quiz 포함.
  * PGRST100 방지: 서버 쿼리는 .select('*')만 사용, type 필터는 가져온 뒤 프론트에서 적용.
  */
 export async function getContentsByTypeFromSupabase(
@@ -216,7 +296,10 @@ export async function getContentsByTypeFromSupabase(
   return rows.map(rowToShortStory);
 }
 
-/** id만으로 1건 조회 (type 무관). id 유효하지 않으면 쿼리 생략 */
+/**
+ * id만으로 1건 조회 (type 무관). .select('*') — core_quiz, read_quizzes, summary_quiz 포함.
+ * id 유효하지 않으면 쿼리 생략.
+ */
 export async function getContentByIdFromSupabase(
   id: string
 ): Promise<{ story: ShortStory; type: ContentTypeSupabase } | null> {
@@ -243,6 +326,13 @@ export async function getContentByIdFromSupabase(
 
   if (error || !data) return null;
   const row = data as ContentRow;
+  console.log("FETCHED CONTENT:", {
+    id: row?.id,
+    title: row?.title,
+    core_quiz: row?.core_quiz,
+    read_quizzes: row?.read_quizzes,
+    summary_quiz: row?.summary_quiz,
+  });
   const t = (typeof row.type === "string" ? row.type : String(row.type ?? "")) as ContentTypeSupabase;
   if (!CONTENT_TYPES.includes(t)) return null;
   return { story: rowToShortStory(row), type: t };

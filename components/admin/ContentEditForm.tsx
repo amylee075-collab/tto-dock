@@ -46,24 +46,40 @@ export default function ContentEditForm({
     }))
   );
 
-  const summary = initialStory.summaryQuiz;
+  const summaryArray =
+    Array.isArray(initialStory.summaryQuiz)
+      ? initialStory.summaryQuiz
+      : initialStory.summaryQuiz
+        ? [initialStory.summaryQuiz]
+        : [];
+  const [summaryItems, setSummaryItems] = useState<
+    { question: string; modelAnswer: string }[]
+  >(
+    summaryArray.length > 0
+      ? summaryArray.map((s) => ({
+          question: s.question ?? "",
+          modelAnswer: s.modelAnswer ?? s.exampleAnswer ?? "",
+        }))
+      : [{ question: "", modelAnswer: "" }]
+  );
+  const summaryBase = summaryArray[0];
   const [requiredKeywordsStr, setRequiredKeywordsStr] = useState(
-    (summary?.requiredKeywords ?? []).join(", ")
+    (summaryBase?.requiredKeywords ?? []).join(", ")
   );
   const [exampleAnswer, setExampleAnswer] = useState(
-    summary?.exampleAnswer ?? ""
+    summaryBase?.exampleAnswer ?? ""
   );
   const [charLimit3, setCharLimit3] = useState(
-    summary?.charLimitByGrade?.["3"] ?? ""
+    summaryBase?.charLimitByGrade?.["3"] ?? ""
   );
   const [charLimit4, setCharLimit4] = useState(
-    summary?.charLimitByGrade?.["4"] ?? ""
+    summaryBase?.charLimitByGrade?.["4"] ?? ""
   );
   const [charLimit5, setCharLimit5] = useState(
-    summary?.charLimitByGrade?.["5"] ?? ""
+    summaryBase?.charLimitByGrade?.["5"] ?? ""
   );
   const [charLimit6, setCharLimit6] = useState(
-    summary?.charLimitByGrade?.["6"] ?? ""
+    summaryBase?.charLimitByGrade?.["6"] ?? ""
   );
 
   const [saving, setSaving] = useState(false);
@@ -122,6 +138,31 @@ export default function ContentEditForm({
     setReadQuizzes((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const addSummaryItem = () => {
+    setSummaryItems((prev) =>
+      prev.length >= 5 ? prev : [...prev, { question: "", modelAnswer: "" }]
+    );
+  };
+
+  const updateSummaryItem = (
+    index: number,
+    field: "question" | "modelAnswer",
+    value: string
+  ) => {
+    setSummaryItems((prev) => {
+      const next = [...prev];
+      const item = { ...next[index], [field]: value };
+      next[index] = item;
+      return next;
+    });
+  };
+
+  const removeSummaryItem = (index: number) => {
+    setSummaryItems((prev) =>
+      prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)
+    );
+  };
+
   const handleSubmit = async () => {
     setSaving(true);
     setMessage(null);
@@ -153,20 +194,40 @@ export default function ContentEditForm({
       if (charLimit5 !== "") charLimitByGrade["5"] = Number(charLimit5) || 0;
       if (charLimit6 !== "") charLimitByGrade["6"] = Number(charLimit6) || 0;
 
-      const summary_quiz =
+      const baseMetaExists =
         requiredKeywordsStr.trim() ||
         exampleAnswer.trim() ||
-        Object.keys(charLimitByGrade).length > 0
-          ? {
-              ...(requiredKeywordsStr.trim() && {
-                requiredKeywords: requiredKeywordsStr
-                  .split(/[\n,]+/)
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              }),
-              ...(exampleAnswer.trim() && { exampleAnswer: exampleAnswer.trim() }),
-              ...(Object.keys(charLimitByGrade).length > 0 && { charLimitByGrade }),
-            }
+        Object.keys(charLimitByGrade).length > 0;
+
+      const cleanedSummaryItems = summaryItems
+        .map((item) => ({
+          question: item.question.trim(),
+          modelAnswer: item.modelAnswer.trim(),
+        }))
+        .filter((item) => item.question || item.modelAnswer);
+
+      const summary_quiz =
+        cleanedSummaryItems.length > 0 || baseMetaExists
+          ? (cleanedSummaryItems.length > 0 ? cleanedSummaryItems : [{}]).map(
+              (item, idx) => ({
+                ...(item.question && { question: item.question }),
+                ...(item.modelAnswer && { model_answer: item.modelAnswer }),
+                ...(baseMetaExists && idx === 0 && {
+                  ...(requiredKeywordsStr.trim() && {
+                    requiredKeywords: requiredKeywordsStr
+                      .split(/[\n,]+/)
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  }),
+                  ...(exampleAnswer.trim() && {
+                    exampleAnswer: exampleAnswer.trim(),
+                  }),
+                  ...(Object.keys(charLimitByGrade).length > 0 && {
+                    charLimitByGrade,
+                  }),
+                }),
+              })
+            )
           : undefined;
 
       const headers: Record<string, string> = {
@@ -447,44 +508,114 @@ export default function ContentEditForm({
 
           {activeTab === "summary" && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">AI 피드백용 필수 키워드 (쉼표 또는 줄바꿈)</label>
-                <textarea
-                  value={requiredKeywordsStr}
-                  onChange={(e) => setRequiredKeywordsStr(e.target.value)}
-                  placeholder="키워드1, 키워드2"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-[#212529] min-h-[60px]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">예시 답안</label>
-                <textarea
-                  value={exampleAnswer}
-                  onChange={(e) => setExampleAnswer(e.target.value)}
-                  placeholder="요약 예시"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-[#212529] min-h-[80px]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">학년별 글자 수 제한 (선택)</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { grade: "3", value: charLimit3, set: setCharLimit3 },
-                    { grade: "4", value: charLimit4, set: setCharLimit4 },
-                    { grade: "5", value: charLimit5, set: setCharLimit5 },
-                    { grade: "6", value: charLimit6, set: setCharLimit6 },
-                  ].map(({ grade, value, set }) => (
-                    <div key={grade}>
-                      <span className="text-sm text-gray-600">{grade}학년</span>
+              <p className="text-sm text-gray-600">
+                최대 5문항까지 요약/생각 질문을 등록할 수 있어요. 각 문항에는 질문과 모델 예시 답안을 입력해 주세요.
+              </p>
+              <div className="space-y-4">
+                {summaryItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="rounded-lg border border-gray-200 bg-gray-50/60 p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-[#212529]">
+                        요약 문항 {index + 1}
+                      </span>
+                      {summaryItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSummaryItem(index)}
+                          className="text-xs text-red-600"
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        질문
+                      </label>
                       <input
-                        type="number"
-                        min={0}
-                        value={value}
-                        onChange={(e) => set(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-2 py-1 text-[#212529]"
+                        type="text"
+                        value={item.question}
+                        onChange={(e) =>
+                          updateSummaryItem(index, "question", e.target.value)
+                        }
+                        placeholder="예: 오늘 읽은 이야기에서 가장 기억에 남는 장면은 무엇인가요?"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-[#212529]"
                       />
                     </div>
-                  ))}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        모델 예시 답안
+                      </label>
+                      <textarea
+                        value={item.modelAnswer}
+                        onChange={(e) =>
+                          updateSummaryItem(index, "modelAnswer", e.target.value)
+                        }
+                        placeholder="예시 답안을 입력하면 아이의 답변과 나란히 비교해 볼 수 있어요."
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-[#212529] min-h-[60px]"
+                      />
+                    </div>
+                  </div>
+                ))}
+                {summaryItems.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={addSummaryItem}
+                    className="rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"
+                  >
+                    문항 추가
+                  </button>
+                )}
+              </div>
+              <div className="pt-4 border-t border-gray-200 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    AI 피드백용 필수 키워드 (쉼표 또는 줄바꿈)
+                  </label>
+                  <textarea
+                    value={requiredKeywordsStr}
+                    onChange={(e) => setRequiredKeywordsStr(e.target.value)}
+                    placeholder="키워드1, 키워드2"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-[#212529] min-h-[60px]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    공통 예시 답안
+                  </label>
+                  <textarea
+                    value={exampleAnswer}
+                    onChange={(e) => setExampleAnswer(e.target.value)}
+                    placeholder="요약 예시 (첫 번째 문항 메타데이터로 저장됩니다)"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-[#212529] min-h-[80px]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    학년별 글자 수 제한 (선택)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { grade: "3", value: charLimit3, set: setCharLimit3 },
+                      { grade: "4", value: charLimit4, set: setCharLimit4 },
+                      { grade: "5", value: charLimit5, set: setCharLimit5 },
+                      { grade: "6", value: charLimit6, set: setCharLimit6 },
+                    ].map(({ grade, value, set }) => (
+                      <div key={grade}>
+                        <span className="text-sm text-gray-600">{grade}학년</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={value}
+                          onChange={(e) => set(e.target.value)}
+                          className="w-full rounded-lg border border-gray-300 px-2 py-1 text-[#212529]"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

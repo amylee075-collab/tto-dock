@@ -16,8 +16,10 @@ export default async function LongStoryPage({ params }: PageProps) {
   const story = await getContentFromSupabase("long", id);
   if (!story) notFound();
 
-  const hasQuizFromSource =
-    (story.readQuizzes?.length ?? 0) > 0 && !!story.coreQuiz?.question;
+  const hasQuizFromSource = !!(
+    story.coreQuiz &&
+    (story.coreQuiz.question || story.coreQuiz.answer || story.coreQuiz.sentence)
+  );
 
   return (
     <SetBreadcrumbTitle title={story.title}>

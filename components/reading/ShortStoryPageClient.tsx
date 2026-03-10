@@ -22,13 +22,16 @@ interface ShortStoryPageClientProps {
   story: ShortStory;
   /** 분야별/디지털일 때만 챌린지 저장 */
   source?: StorySource;
+  /** 퀴즈 바로 진입 등 초기 단계 제어 */
+  initialStep?: PageStep;
 }
 
 export default function ShortStoryPageClient({
   story,
   source,
+  initialStep,
 }: ShortStoryPageClientProps) {
-  const [step, setStep] = useState<PageStep>("READING");
+  const [step, setStep] = useState<PageStep>(initialStep ?? "READING");
   const [resultCpm, setResultCpm] = useState(0);
   const goingToQuizRef = useRef(false);
 

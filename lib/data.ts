@@ -397,8 +397,12 @@ export interface ShortStoryReadQuiz {
   ans: number; // 정답 인덱스 (0-based)
 }
 
-/** 3단계 요약하기 — AI 피드백용 키워드·예시 답안 */
+/** 3단계 요약하기 — 질문·모델답안·AI 피드백용 메타데이터 */
 export interface ShortStorySummaryQuiz {
+  /** 아이에게 보여줄 요약/생각 질문 */
+  question?: string;
+  /** 모델 기준 예시 답안 (비교용) */
+  modelAnswer?: string;
   requiredKeywords?: string[];
   exampleAnswer?: string;
   /** 학년별 권장 글자 수 (예: { "3": 100, "4": 150 }) */
@@ -413,8 +417,8 @@ export interface ShortStory {
   vocabulary: ShortStoryVocabulary[];
   coreQuiz: ShortStoryCoreQuiz;
   readQuizzes: ShortStoryReadQuiz[];
-  /** 3단계 요약 퀴즈 (DB: summary_quiz jsonb) */
-  summaryQuiz?: ShortStorySummaryQuiz;
+  /** 3단계 요약 퀴즈 (DB: summary_quiz jsonb, 최대 5문항) */
+  summaryQuiz?: ShortStorySummaryQuiz[];
   /** 분야·칩용 배열 — Supabase 컬럼명 badges (비문학, 사회 등). map()으로 칩 노출 */
   badges?: string[];
   /** 분야별용: 과학 | 역사 | 사회 */
