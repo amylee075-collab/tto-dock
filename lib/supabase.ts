@@ -8,7 +8,8 @@ const noStoreFetch: typeof fetch = (input, init) => {
   const reqUrl = typeof input === "string" ? input : (input as Request).url;
   const isSupabaseRest = url && reqUrl.startsWith(url) && reqUrl.includes("/rest/v1/");
   const finalUrl = isSupabaseRest ? reqUrl : `${reqUrl}${reqUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
-  const nextInput = typeof input === "string" ? finalUrl : new Request(finalUrl, input);
+  const nextInput =
+    typeof input === "string" ? finalUrl : new Request(finalUrl, input as any);
   return fetch(nextInput, { ...init, cache: "no-store" });
 };
 
