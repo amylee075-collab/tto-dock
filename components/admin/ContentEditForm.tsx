@@ -206,29 +206,45 @@ export default function ContentEditForm({
         }))
         .filter((item) => item.question || item.modelAnswer);
 
-      const summary_quiz =
-        cleanedSummaryItems.length > 0 || baseMetaExists
-          ? (cleanedSummaryItems.length > 0 ? cleanedSummaryItems : [{}]).map(
-              (item, idx) => ({
-                ...(item.question && { question: item.question }),
-                ...(item.modelAnswer && { model_answer: item.modelAnswer }),
-                ...(baseMetaExists && idx === 0 && {
-                  ...(requiredKeywordsStr.trim() && {
-                    requiredKeywords: requiredKeywordsStr
-                      .split(/[\n,]+/)
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  }),
-                  ...(exampleAnswer.trim() && {
-                    exampleAnswer: exampleAnswer.trim(),
-                  }),
-                  ...(Object.keys(charLimitByGrade).length > 0 && {
-                    charLimitByGrade,
-                  }),
-                }),
-              })
-            )
-          : undefined;
+      let summary_quiz: unknown = undefined;
+      if (cleanedSummaryItems.length > 0) {
+        summary_quiz = cleanedSummaryItems.map((item, idx) => ({
+          ...(item.question && { question: item.question }),
+          ...(item.modelAnswer && { model_answer: item.modelAnswer }),
+          ...(baseMetaExists && idx === 0 && {
+            ...(requiredKeywordsStr.trim() && {
+              requiredKeywords: requiredKeywordsStr
+                .split(/[\n,]+/)
+                .map((s) => s.trim())
+                .filter(Boolean),
+            }),
+            ...(exampleAnswer.trim() && {
+              exampleAnswer: exampleAnswer.trim(),
+            }),
+            ...(Object.keys(charLimitByGrade).length > 0 && {
+              charLimitByGrade,
+            }),
+          }),
+        }));
+      } else if (baseMetaExists) {
+        // 요약 문항은 없지만 공통 메타데이터만 저장하고 싶은 경우
+        summary_quiz = [
+          {
+            ...(requiredKeywordsStr.trim() && {
+              requiredKeywords: requiredKeywordsStr
+                .split(/[\n,]+/)
+                .map((s) => s.trim())
+                .filter(Boolean),
+            }),
+            ...(exampleAnswer.trim() && {
+              exampleAnswer: exampleAnswer.trim(),
+            }),
+            ...(Object.keys(charLimitByGrade).length > 0 && {
+              charLimitByGrade,
+            }),
+          },
+        ];
+      }
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
