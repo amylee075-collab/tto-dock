@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { getRandomPassageByCategory } from "@/lib/data";
+import { useState } from "react";
 
 const categories = [
   { key: "science", label: "과학", description: "과학 주제의 글을 읽어요.", icon: "🔬" },
@@ -12,10 +12,18 @@ const categories = [
 
 export default function CategoryHub() {
   const router = useRouter();
+  const [loading, setLoading] = useState<string | null>(null);
 
-  const handleCategory = (category: "science" | "history" | "society") => {
-    const passage = getRandomPassageByCategory(category);
-    router.push(`/reading/${passage.id}`);
+  const handleCategory = async (category: "science" | "history" | "society") => {
+    setLoading(category);
+    try {
+      const res = await fetch(`/api/reading/random-id?type=category&section=${category}`);
+      const { id } = await res.json();
+      if (id) router.push(`/reading/category/${id}`);
+      else router.push("/reading/category");
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
@@ -35,7 +43,8 @@ export default function CategoryHub() {
             <motion.button
               type="button"
               onClick={() => handleCategory(cat.key)}
-              className="w-full text-left h-full flex flex-col rounded-[20px] border border-gray-100 bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)] transition-shadow duration-300 border-[#FF5C00]/20 hover:border-[#FF5C00]/40 focus:outline-none focus:ring-2 focus:ring-[#FF5C00]/50"
+              disabled={loading !== null}
+              className="w-full text-left h-full flex flex-col rounded-[20px] border border-gray-100 bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)] transition-shadow duration-300 border-[#FF5C00]/20 hover:border-[#FF5C00]/40 focus:outline-none focus:ring-2 focus:ring-[#FF5C00]/50 disabled:opacity-70"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}

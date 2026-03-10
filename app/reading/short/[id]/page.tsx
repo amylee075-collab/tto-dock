@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { getShortStoryById } from "@/lib/data";
 import { getContentFromSupabase } from "@/lib/content-from-supabase";
 import ShortStoryPageClient from "@/components/reading/ShortStoryPageClient";
 import SetBreadcrumbTitle from "@/components/SetBreadcrumbTitle";
@@ -14,22 +13,22 @@ interface PageProps {
 
 export default async function ShortStoryPage({ params }: PageProps) {
   const { id } = await params;
-  const storyFromSupabase = await getContentFromSupabase("short", id);
-  const localStory = getShortStoryById(id);
-  const story = storyFromSupabase ?? localStory;
-
+  const story = await getContentFromSupabase("short", id);
   if (!story) notFound();
 
-  // Supabase에는 퀴즈 컬럼이 없을 수 있어, 퀴즈가 비어 있으면 로컬 퀴즈로 보강 (완료 후 퀴즈 노출 보장)
-  const hasQuizFromSource =
-    story.readQuizzes?.length > 0 && story.coreQuiz?.question;
-  const mergedStory = !hasQuizFromSource && localStory
-    ? { ...story, coreQuiz: localStory.coreQuiz, readQuizzes: localStory.readQuizzes }
-    : story;
+  const hasQuizFromSource = !!(
+    story.coreQuiz &&
+    (story.coreQuiz.question || story.coreQuiz.answer || story.coreQuiz.sentence)
+  );
 
   return (
-    <SetBreadcrumbTitle title={mergedStory.title}>
-      <ShortStoryPageClient story={mergedStory} source="short" />
+    <SetBreadcrumbTitle title={story.title}>
+      {!hasQuizFromSource && (
+        <p className="mb-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
+          퀴즈가 등록되지 않았습니다. 어드민에서 퀴즈를 등록해 주세요.
+        </p>
+      )}
+      <ShortStoryPageClient story={story} source="short" />
     </SetBreadcrumbTitle>
   );
 }

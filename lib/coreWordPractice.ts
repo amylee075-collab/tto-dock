@@ -5,6 +5,8 @@
 
 export interface CoreWordQuizItem {
   id: number;
+  /** 데일리 퀴즈·solved 저장용 고유 ID (Supabase row.id 또는 "local-1" 등) */
+  quizId?: string;
   sentence: string;
   correctAnswer: string;
   selectableWords: string[];
@@ -15,6 +17,7 @@ export interface CoreWordQuizItem {
 export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   {
     id: 1,
+    quizId: "local-1",
     sentence:
       "우리는 학교나 마을에서 여러 사람과 어울려 살아가는데, 이때 서로를 한 식구처럼 아끼고 돕는 마음가짐을 공동체 의식이라고 부릅니다.",
     correctAnswer: "공동체 의식",
@@ -32,6 +35,7 @@ export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   },
   {
     id: 2,
+    quizId: "local-2",
     sentence:
       "석탄이나 석유 같은 화석 연료를 많이 사용하여 지구의 평균 기온이 평상시보다 점점 높아지는 환경 문제를 지구 온난화라고 합니다.",
     correctAnswer: "지구 온난화",
@@ -60,6 +64,7 @@ export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   },
   {
     id: 3,
+    quizId: "local-3",
     sentence:
       "광합성은 식물이 잎에 있는 엽록체에서 햇빛과 이산화탄소를 이용해 스스로 살아갈 영양분을 만들어 내는 아주 신비로운 과정입니다.",
     correctAnswer: "광합성",
@@ -87,6 +92,7 @@ export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   },
   {
     id: 4,
+    quizId: "local-4",
     sentence:
       "사용하고 버려지는 플라스틱이나 종이를 그냥 버리지 않고 다시 쓸 수 있는 자원으로 만드는 재활용은 지구를 살리는 중요한 활동입니다.",
     correctAnswer: "재활용",
@@ -105,6 +111,7 @@ export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   },
   {
     id: 5,
+    quizId: "local-5",
     sentence:
       "방대한 데이터를 스스로 학습하고 인간처럼 복잡한 문제를 판단하여 해결할 수 있도록 만들어진 첨단 기술을 인공지능이라고 합니다.",
     correctAnswer: "인공지능",
@@ -132,6 +139,7 @@ export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   },
   {
     id: 6,
+    quizId: "local-6",
     sentence:
       "저작권은 음악, 그림, 글과 같이 개인이 정성을 다해 만든 창작물에 대해 법적으로 보장받는 소중한 권리를 의미합니다.",
     correctAnswer: "저작권",
@@ -159,6 +167,7 @@ export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   },
   {
     id: 7,
+    quizId: "local-7",
     sentence:
       "국민이 나라의 주인으로서 직접 투표에 참여하고 모든 문제를 대화와 타협으로 결정하는 민주주의는 현대 사회의 기초가 되는 제도입니다.",
     correctAnswer: "민주주의",
@@ -188,6 +197,7 @@ export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   },
   {
     id: 8,
+    quizId: "local-8",
     sentence:
       "환경 오염이나 무분별한 개발 때문에 서식지가 파괴되어 전 세계적으로 개체 수가 급격히 줄어든 생물을 멸종 위기 동물이라고 부릅니다.",
     correctAnswer: "멸종 위기 동물",
@@ -215,6 +225,7 @@ export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   },
   {
     id: 9,
+    quizId: "local-9",
     sentence:
       "전통문화에는 우리 조상들이 오랜 세월 동안 일궈온 삶의 지혜와 독특한 특징이 담긴 생활 양식이 담겨 있어 우리가 소중히 계승해야 합니다.",
     correctAnswer: "전통문화",
@@ -242,6 +253,7 @@ export const CORE_WORD_QUIZ_ITEMS: CoreWordQuizItem[] = [
   },
   {
     id: 10,
+    quizId: "local-10",
     sentence:
       "말이나 글을 사용하지 않더라도 표정, 눈빛, 몸짓만으로 상대방에게 마음을 전달할 수 있는 방식을 비언어적 소통이라고 합니다.",
     correctAnswer: "비언어적 소통",

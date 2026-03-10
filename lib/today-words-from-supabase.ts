@@ -2,6 +2,7 @@ import type { TodayWordItem, WordType } from "@/lib/todayWordList";
 import { getSupabase } from "@/lib/supabase";
 import { forceDynamic } from "@/lib/force-dynamic";
 
+/** today_words_100.csv / Supabase today_words 테이블 필드: word, meaning, example, type */
 type Row = { id: string; word: string; meaning: string; example: string; type: string };
 
 function rowToItem(row: Row): TodayWordItem {
@@ -23,7 +24,8 @@ export async function getTodayWordsFromSupabase(): Promise<TodayWordItem[]> {
   const { data, error } = await supabase
     .from("today_words")
     .select("id, word, meaning, example, type")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(100);
 
   if (error || !data) return [];
   return (data as Row[]).map(rowToItem);

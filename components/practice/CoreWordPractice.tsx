@@ -4,12 +4,13 @@
  * 핵심 단어 찾기 - 원본 텍스트 보존형
  * 문장을 split하지 않고, 정답/오답 키워드 위치만 찾아 해당 부분만 .training-word-card span으로 감쌈.
  */
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import type { CoreWordQuizItem } from "@/lib/coreWordPractice";
 import { CORE_WORD_QUIZ_ITEMS } from "@/lib/coreWordPractice";
 import Link from "next/link";
+import ConfettiEffect from "@/components/reading/ConfettiEffect";
 
 export type SentenceSegment =
   | { type: "text"; content: string }
@@ -76,79 +77,101 @@ function buildSegmentsFromSentence(
 }
 
 
-/** 정답/오답 피드백 모달 - 배경 dim, 둥근 모서리, X·확인으로 닫기 */
+/** 정답/오답 피드백 모달 — 부드러운 트랜지션, 1회차 오답 vs 2회차(정답 공개) 구분 */
 function FeedbackModal({
   isOpen,
   onClose,
   type,
   message,
+  subMessage,
+  showConfirm = true,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  type: "correct" | "wrong";
+  type: "correct" | "wrong" | "reveal";
   message: string;
+  /** 두 번째 줄 — 어드민 단어별 피드백 등 */
+  subMessage?: string;
+  showConfirm?: boolean;
 }) {
   const [avatarError, setAvatarError] = useState(false);
   if (!isOpen) return null;
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      aria-modal="true"
-      role="dialog"
-      aria-labelledby="feedback-modal-title"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-md rounded-3xl bg-white shadow-xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        aria-modal="true"
+        role="dialog"
+        aria-labelledby="feedback-modal-title"
+        onClick={onClose}
       >
-        <div className="flex justify-end p-3 sm:p-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#212529] transition-colors"
-            aria-label="닫기"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="px-6 sm:p-8 pb-6 pt-0 flex flex-col items-center text-center">
-          <span className="flex h-[120px] w-[120px] shrink-0 items-center justify-center overflow-visible mb-4">
-            {!avatarError ? (
-              <Image
-                src="/images/character.png"
-                alt=""
-                width={120}
-                height={120}
-                className="w-full h-full object-contain object-center"
-                onError={() => setAvatarError(true)}
-              />
-            ) : (
-              <span className="text-5xl" aria-hidden>🦊</span>
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="relative w-full max-w-md rounded-3xl bg-white shadow-xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-end p-3 sm:p-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#212529] transition-colors"
+              aria-label="닫기"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="px-6 sm:p-8 pb-6 pt-0 flex flex-col items-center text-center">
+            <span className="flex h-[120px] w-[120px] shrink-0 items-center justify-center overflow-visible mb-4">
+              {!avatarError ? (
+                <Image
+                  src="/images/character.png"
+                  alt=""
+                  width={120}
+                  height={120}
+                  className="w-full h-full object-contain object-center"
+                  onError={() => setAvatarError(true)}
+                />
+              ) : (
+                <span className="text-5xl" aria-hidden>🦊</span>
+              )}
+            </span>
+            <p
+              id="feedback-modal-title"
+              className={`text-lg sm:text-xl font-bold leading-relaxed ${
+                type === "correct" ? "text-[#212529]" : type === "reveal" ? "text-amber-800" : "text-red-700"
+              }`}
+            >
+              {message}
+            </p>
+            {subMessage && (
+              <p className="mt-2 text-base text-gray-600 leading-relaxed">
+                {subMessage}
+              </p>
             )}
-          </span>
-          <p
-            id="feedback-modal-title"
-            className={`text-lg sm:text-xl font-bold leading-relaxed ${
-              type === "correct" ? "text-[#212529]" : "text-red-700"
-            }`}
-          >
-            {message}
-          </p>
-        </div>
-        <div className="px-6 sm:p-8 pb-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full rounded-xl py-3.5 font-bold text-white bg-[#ff5700] hover:opacity-90 transition-opacity"
-          >
-            확인
-          </button>
-        </div>
-      </div>
-    </div>
+          </div>
+          {showConfirm && (
+            <div className="px-6 sm:p-8 pb-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full rounded-xl py-3.5 font-bold text-white bg-[#ff5700] hover:opacity-90 transition-opacity"
+              >
+                확인
+              </button>
+            </div>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -183,19 +206,40 @@ function ParticleBurst({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-type Props = { items?: CoreWordQuizItem[] };
+const getItemQuizId = (item: CoreWordQuizItem): string =>
+  item.quizId ?? `local-${item.id}`;
 
-export default function CoreWordPractice({ items: itemsProp }: Props) {
+type Props = {
+  items?: CoreWordQuizItem[];
+  /** 정답 시 해당 문항 ID 저장용 (데일리 순환에서 제외) */
+  onCorrect?: (quizId: string) => void;
+  /** 2회 오답 후 정답 공개하고 넘어간 경우 — 학습 리포트용 isCorrect: false 기록 */
+  onWrong?: (quizId: string) => void;
+  /** 오늘 10문제 전체 완료 시 호출 (저장용) */
+  onComplete?: (quizIds: string[]) => void;
+};
+
+const MESSAGE_FIRST_WRONG = "아쉬워요!";
+const MESSAGE_SECOND_WRONG = (answer: string) => `정답은 ${answer}입니다!`;
+
+export default function CoreWordPractice({ items: itemsProp, onCorrect, onComplete, onWrong }: Props) {
   const items = itemsProp ?? CORE_WORD_QUIZ_ITEMS;
   const TOTAL = items.length;
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [feedback, setFeedback] = useState<"correct" | "wrong" | "reveal" | null>(null);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [wrongSegmentId, setWrongSegmentId] = useState<number | null>(null);
   const [selectedWordKey, setSelectedWordKey] = useState<string | null>(null);
   const [showParticles, setShowParticles] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+  /** 팝업 오픈 시 Supabase에서 최신 feedback_by_word만 재조회하여 즉시 반영 */
+  const [latestFeedbackByQuizId, setLatestFeedbackByQuizId] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  const completedFiredRef = useRef(false);
+  const answerRevealed = attempts >= 2;
 
   const item = items[currentIndex];
   const isLast = currentIndex === TOTAL - 1;
@@ -208,38 +252,90 @@ export default function CoreWordPractice({ items: itemsProp }: Props) {
       )
     : [];
 
+  useEffect(() => {
+    setAttempts(0);
+    setFeedback(null);
+    setWrongSegmentId(null);
+    setSelectedWordKey(null);
+  }, [currentIndex]);
+
+  useEffect(() => {
+    if (!feedbackModalOpen) return;
+    const quizId = item?.quizId;
+    if (!quizId) return;
+    let cancelled = false;
+
+    fetch(`/api/practice/core-word/feedback?quizId=${encodeURIComponent(quizId)}`, {
+      cache: "no-store",
+    })
+      .then(async (res) => (res.ok ? res.json() : null))
+      .then((data: unknown) => {
+        if (cancelled || !data || typeof data !== "object") return;
+        const d = data as { quizId?: unknown; feedbackByWord?: unknown };
+        if (typeof d.quizId !== "string" || d.quizId !== quizId) return;
+        const fb = d.feedbackByWord;
+        if (!fb || typeof fb !== "object" || Array.isArray(fb)) return;
+        setLatestFeedbackByQuizId((prev) => ({ ...prev, [quizId]: fb as Record<string, string> }));
+      })
+      .catch(() => {
+        // ignore
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [feedbackModalOpen, item?.quizId]);
+
+  const feedbackByWord =
+    item?.quizId && latestFeedbackByQuizId[item.quizId]
+      ? latestFeedbackByQuizId[item.quizId]!
+      : item?.feedbackByWord ?? {};
+
   const handleKeywordClick = (
     segmentIndex: number,
     isCorrect: boolean,
     wordKey: string
   ) => {
-    if (!item) return;
-    setFeedback(null);
-    setWrongSegmentId(null);
+    if (!item || answerRevealed) return;
     setSelectedWordKey(wordKey);
     if (isCorrect) {
       setFeedback("correct");
       setShowParticles(true);
       setFeedbackModalOpen(true);
+      onCorrect?.(getItemQuizId(item));
     } else {
-      setFeedback("wrong");
+      const nextAttempts = attempts + 1;
+      setAttempts(nextAttempts);
       setWrongSegmentId(segmentIndex);
+      setFeedback(nextAttempts === 1 ? "wrong" : "reveal");
       setFeedbackModalOpen(true);
     }
   };
 
+  const canGoNext = feedback === "correct" || answerRevealed;
+
   const goNext = () => {
-    if (feedback !== "correct") return;
+    if (!canGoNext) return;
+    if (answerRevealed && item) onWrong?.(getItemQuizId(item));
+    setFeedbackModalOpen(false);
     if (isLast) return;
     setCurrentIndex((i) => i + 1);
     setFeedback(null);
-    setFeedbackModalOpen(false);
     setSelectedWordKey(null);
     setWrongSegmentId(null);
     setShowParticles(false);
+    setAttempts(0);
   };
 
-  const showCompletion = isLast && feedback === "correct";
+  const showCompletion = isLast && (feedback === "correct" || answerRevealed);
+
+  useEffect(() => {
+    if (showCompletion && items.length > 0 && !completedFiredRef.current) {
+      completedFiredRef.current = true;
+      if (answerRevealed && item) onWrong?.(getItemQuizId(item));
+      onComplete?.(items.map(getItemQuizId));
+    }
+  }, [showCompletion, onComplete, onWrong, items, answerRevealed, item]);
 
   const sentenceNodes: ReactNode[] = [];
   segments.forEach((seg, i) => {
@@ -253,17 +349,20 @@ export default function CoreWordPractice({ items: itemsProp }: Props) {
     }
     const isCorrectSelected = feedback === "correct" && seg.isCorrect;
     const isWrong = wrongSegmentId === i;
+    const isRevealedCorrect = answerRevealed && seg.isCorrect;
+    const choiceDisabled = answerRevealed;
     sentenceNodes.push(
       <motion.button
         key={i}
         type="button"
+        disabled={choiceDisabled}
         onClick={() => handleKeywordClick(i, seg.isCorrect, seg.wordKey)}
-        className={`inline m-0 border-0 p-0 text-[1.44rem] md:text-[1.72rem] leading-inherit tracking-normal outline-none ring-0 focus:outline-none focus:ring-0 text-[#212529] font-medium bg-transparent ${isWrong ? "animate-shake text-red-700" : ""}`}
+        className={`inline m-0 border-0 p-0 text-[1.44rem] md:text-[1.72rem] leading-inherit tracking-normal outline-none ring-0 focus:outline-none focus:ring-0 text-[#212529] font-medium bg-transparent ${isWrong ? "animate-shake text-red-700" : ""} ${choiceDisabled ? "cursor-default pointer-events-none" : ""}`}
         style={{ margin: 0, padding: 0 }}
-        whileTap={!feedback ? { scale: 0.99 } : {}}
+        whileTap={!feedback && !choiceDisabled ? { scale: 0.99 } : {}}
       >
         <span
-          className={`training-word-card text-[1.44rem] md:text-[1.72rem] ${isCorrectSelected ? "selected" : isWrong ? "wrong" : ""}`}
+          className={`training-word-card text-[1.44rem] md:text-[1.72rem] ${isCorrectSelected ? "selected" : isRevealedCorrect ? "selected" : isWrong ? "wrong" : ""}`}
           style={{ margin: 0 }}
         >
           {seg.content}
@@ -305,23 +404,61 @@ export default function CoreWordPractice({ items: itemsProp }: Props) {
             {showCompletion ? (
               <motion.div
                 key="done"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="rounded-[20px] bg-white shadow-lg border border-gray-100 p-8 text-center"
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="relative"
               >
-                <p className="text-xl sm:text-2xl font-bold text-[#212529] mb-2">
-                  모든 문제를 완료했어요!
-                </p>
-                <p className="text-gray-600 mb-6">
-                  핵심 단어 찾기 연습을 잘 마쳤어요. 다음에도 또 도전해 보세요.
-                </p>
-                <Link
-                  href="/"
-                  className="inline-flex rounded-xl bg-[#ff5700] px-6 py-3 font-bold text-white shadow-sm hover:opacity-90 transition-opacity"
+                <ConfettiEffect />
+                <div className="relative rounded-[20px] bg-white shadow-lg border border-gray-100 p-8 sm:p-10 text-center">
+                <motion.p
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15, duration: 0.35 }}
+                  className="text-2xl sm:text-3xl font-extrabold text-[#212529] mb-3"
                 >
-                  홈으로 가기
-                </Link>
+                  모든 퀴즈를 풀었어요!
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
+                  className="text-base sm:text-lg text-gray-600 leading-relaxed mb-6"
+                >
+                  매일 매일 새로운 퀴즈가 제공돼요. 내일 다시 도전해 봐요!
+                </motion.p>
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: [0.8, 1.08, 1] }}
+                  transition={{
+                    delay: 0.25,
+                    duration: 0.5,
+                    scale: { type: "spring", stiffness: 260, damping: 14 },
+                  }}
+                  className="inline-flex h-24 w-24 sm:h-28 sm:w-28 mb-6 items-center justify-center rounded-full border-2 border-[#ff5700]/30 bg-[#fff5f0]"
+                >
+                  <Image
+                    src="/images/character.png"
+                    alt=""
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-contain"
+                  />
+                </motion.span>
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45, duration: 0.3 }}
+                >
+                  <Link
+                    href="/"
+                    className="inline-flex rounded-xl bg-[#ff5700] px-8 py-3.5 font-bold text-white shadow-md hover:opacity-90 transition-opacity"
+                  >
+                    홈으로 가기
+                  </Link>
+                </motion.div>
+                </div>
               </motion.div>
             ) : (
               <motion.div
@@ -351,7 +488,7 @@ export default function CoreWordPractice({ items: itemsProp }: Props) {
               <button
                 type="button"
                 onClick={goNext}
-                disabled={feedback !== "correct"}
+                disabled={!canGoNext}
                 className="rounded-xl px-8 py-3.5 font-bold text-white shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed enabled:bg-[#ff5700] enabled:hover:opacity-90"
               >
                 다음 문제로
@@ -360,20 +497,28 @@ export default function CoreWordPractice({ items: itemsProp }: Props) {
           )}
         </div>
 
-        {!showCompletion && item && (feedback === "correct" || feedback === "wrong") && (
+        {!showCompletion && item && (feedback === "correct" || feedback === "wrong" || feedback === "reveal") && (
           <FeedbackModal
             isOpen={feedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
-            type={feedback}
+            type={feedback === "reveal" ? "reveal" : feedback}
             message={
               feedback === "correct"
-                ? (selectedWordKey && item.feedbackByWord[selectedWordKey]
-                    ? item.feedbackByWord[selectedWordKey]
-                    : item.feedbackByWord[item.correctAnswer]) ?? "정답이에요!"
-                : (selectedWordKey && item.feedbackByWord[selectedWordKey]
-                    ? item.feedbackByWord[selectedWordKey]
-                    : "다시 생각해보자!") ?? "다시 생각해보자!"
+                ? (selectedWordKey && feedbackByWord[selectedWordKey]
+                    ? feedbackByWord[selectedWordKey]
+                    : feedbackByWord[item.correctAnswer]) ?? "정답이에요!"
+                : feedback === "wrong"
+                  ? MESSAGE_FIRST_WRONG
+                  : MESSAGE_SECOND_WRONG(correctAnswer)
             }
+            subMessage={
+              feedback === "wrong" && selectedWordKey
+                ? feedbackByWord[selectedWordKey] ?? undefined
+                : feedback === "reveal"
+                  ? feedbackByWord[correctAnswer] ?? undefined
+                  : undefined
+            }
+            showConfirm={feedback !== "reveal"}
           />
         )}
       </section>

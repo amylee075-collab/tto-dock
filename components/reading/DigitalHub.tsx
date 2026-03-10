@@ -2,14 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { getRandomNewsPassage } from "@/lib/data";
+import { useState } from "react";
 
 export default function DigitalHub() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  const handleStart = () => {
-    const passage = getRandomNewsPassage();
-    router.push(`/reading/${passage.id}`);
+  const handleStart = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/reading/random-id?type=digital");
+      const { id } = await res.json();
+      if (id) router.push(`/reading/digital/${id}`);
+      else router.push("/reading/digital");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -26,7 +34,8 @@ export default function DigitalHub() {
       <motion.button
         type="button"
         onClick={handleStart}
-        className="w-full flex flex-col items-center rounded-[20px] border border-gray-100 bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)] transition-shadow duration-300 border-[#FF5C00]/20 hover:border-[#FF5C00]/40 focus:outline-none focus:ring-2 focus:ring-[#FF5C00]/50"
+        disabled={loading}
+        className="w-full flex flex-col items-center rounded-[20px] border border-gray-100 bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)] transition-shadow duration-300 border-[#FF5C00]/20 hover:border-[#FF5C00]/40 focus:outline-none focus:ring-2 focus:ring-[#FF5C00]/50 disabled:opacity-70"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -4 }}

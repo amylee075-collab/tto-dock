@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { getCategoryStoryById } from "@/lib/data";
 import { getContentFromSupabase } from "@/lib/content-from-supabase";
 import ShortStoryPageClient from "@/components/reading/ShortStoryPageClient";
 import SetBreadcrumbTitle from "@/components/SetBreadcrumbTitle";
@@ -14,21 +13,20 @@ interface PageProps {
 
 export default async function CategoryStoryPage({ params }: PageProps) {
   const { id } = await params;
-  const storyFromSupabase = await getContentFromSupabase("category", id);
-  const localStory = getCategoryStoryById(id);
-  const story = storyFromSupabase ?? localStory;
-
+  const story = await getContentFromSupabase("category", id);
   if (!story) notFound();
 
   const hasQuizFromSource =
-    story.readQuizzes?.length > 0 && story.coreQuiz?.question;
-  const mergedStory = !hasQuizFromSource && localStory
-    ? { ...story, coreQuiz: localStory.coreQuiz, readQuizzes: localStory.readQuizzes }
-    : story;
+    (story.readQuizzes?.length ?? 0) > 0 && !!story.coreQuiz?.question;
 
   return (
-    <SetBreadcrumbTitle title={mergedStory.title}>
-      <ShortStoryPageClient story={mergedStory} source="category" />
+    <SetBreadcrumbTitle title={story.title}>
+      {!hasQuizFromSource && (
+        <p className="mb-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
+          퀴즈가 등록되지 않았습니다. 어드민에서 퀴즈를 등록해 주세요.
+        </p>
+      )}
+      <ShortStoryPageClient story={story} source="category" />
     </SetBreadcrumbTitle>
   );
 }

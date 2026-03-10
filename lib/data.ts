@@ -385,12 +385,24 @@ export interface ShortStoryVocabulary {
 export interface ShortStoryCoreQuiz {
   question: string;
   answer: string;
+  /** 문장 내 정답 자리 주황 박스용 — 있으면 문장에서 answer를 박스로 치환 */
+  sentence?: string;
+  /** 유사 정답 리스트 (띄어쓰기 무시 매칭) */
+  similarAnswers?: string[];
 }
 
 export interface ShortStoryReadQuiz {
   q: string;
   options: string[];
   ans: number; // 정답 인덱스 (0-based)
+}
+
+/** 3단계 요약하기 — AI 피드백용 키워드·예시 답안 */
+export interface ShortStorySummaryQuiz {
+  requiredKeywords?: string[];
+  exampleAnswer?: string;
+  /** 학년별 권장 글자 수 (예: { "3": 100, "4": 150 }) */
+  charLimitByGrade?: Record<string, number>;
 }
 
 export interface ShortStory {
@@ -401,12 +413,16 @@ export interface ShortStory {
   vocabulary: ShortStoryVocabulary[];
   coreQuiz: ShortStoryCoreQuiz;
   readQuizzes: ShortStoryReadQuiz[];
-  /** 홈/목록 카드용 뱃지 (예: ["과학"], ["쉬움], ["짧은 글"]) */
+  /** 3단계 요약 퀴즈 (DB: summary_quiz jsonb) */
+  summaryQuiz?: ShortStorySummaryQuiz;
+  /** 분야·칩용 배열 — Supabase 컬럼명 badges (비문학, 사회 등). map()으로 칩 노출 */
   badges?: string[];
   /** 분야별용: 과학 | 역사 | 사회 */
   section?: "과학" | "역사" | "사회";
   /** 디지털 문해력용: 신문기사 | 미디어 비판 등 */
   format?: string;
+  /** 어드민 난이도 1~3 (별점: ★☆☆, ★★☆, ★★★) */
+  difficulty?: number;
 }
 
 /** 짧은 글: 여우 누이, 토끼와 호랑이, 임금님 귀는 당나귀 귀 */
@@ -782,7 +798,7 @@ export interface StoryForHome {
 
 export function getAllStoriesForHome(): StoryForHome[] {
   const short: StoryForHome[] = shortStories.map((s) => ({
-    story: { ...s, badges: [...(s.badges ?? []), "짧은 글"] },
+    story: { ...s, badges: s.badges ?? [] },
     source: "short",
     href: `/reading/short/${s.id}`,
   }));

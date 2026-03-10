@@ -9,7 +9,7 @@ import QuizErrorBoundary from "./QuizErrorBoundary";
 import type { QuizCompletePayload } from "./ShortStoryQuizContainer";
 
 type PageStep = "READING" | "QUIZ";
-export type StorySource = "short" | "category" | "digital";
+export type StorySource = "short" | "long" | "category" | "digital";
 
 function countSentences(content: string): number {
   const trimmed = content.trim();
@@ -32,9 +32,9 @@ export default function ShortStoryPageClient({
   const [resultCpm, setResultCpm] = useState(0);
   const goingToQuizRef = useRef(false);
 
-  /** 짧은 글 / 분야별 / 디지털 모두 마이페이지 챌린지에 반영 */
+  /** 짧은 글 / 긴 글 / 분야별 / 디지털 모두 마이페이지 챌린지에 반영 */
   const isChallengeTracked =
-    source === "short" || source === "category" || source === "digital";
+    source === "short" || source === "long" || source === "category" || source === "digital";
 
   const handleGoQuiz = useCallback(
     async (cpm: number) => {
@@ -72,7 +72,9 @@ export default function ShortStoryPageClient({
       ? "/reading/category"
       : source === "digital"
         ? "/reading/digital"
-        : "/reading/short";
+        : source === "long"
+          ? "/reading/long"
+          : "/reading/short";
 
   if (step === "READING") {
     return (

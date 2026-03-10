@@ -1,24 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { revalidateAllPaths } from "@/lib/revalidate-paths";
 
 const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET?.trim();
-const CONTENT_TYPES = ["short", "category", "digital"] as const;
+const CONTENT_TYPES = ["short", "long", "category", "digital"] as const;
+
+function isAuthorized(request: NextRequest): boolean {
+  if (!REVALIDATE_SECRET) return true;
+  const auth = request.headers.get("authorization");
+  const token = auth?.replace(/^Bearer\s+/i, "").trim();
+  if (token === REVALIDATE_SECRET) return true;
+  const url = new URL(request.url);
+  const secret = url.searchParams.get("secret");
+  return secret === REVALIDATE_SECRET;
+}
 
 /**
- * On-Demand Revalidation: Admin 저장 후 또는 Supabase 웹훅에서 호출.
- * POST body: { type?: "short" | "category" | "digital", id?: string }
- * - type만 있으면 해당 목록 + type 전체 무효화
- * - id까지 있으면 해당 상세 페이지도 무효화
- * - type 없이 호출 시 읽기 관련 경로 전체 무효화
- * 헤더: Authorization: Bearer <REVALIDATE_SECRET> (REVALIDATE_SECRET 설정 시 필수)
+ * On-Demand Revalidation: 어드민 저장 후 또는 배포 후 전체 캐시 초기화.
+ * - GET /api/revalidate?secret=xxx — 브라우저/어드민에서 간단 호출
+ * - POST body: {} 또는 { type?, id? } — type 없으면 홈+전체 리스트 한꺼번에 무효화
+ * 인증: REVALIDATE_SECRET (헤더 Authorization: Bearer 또는 쿼리 secret=)
  */
+export async function GET(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const revalidated = revalidateAllPaths();
+  return NextResponse.json({ revalidated });
+}
+
 export async function POST(request: NextRequest) {
-  if (REVALIDATE_SECRET) {
-    const auth = request.headers.get("authorization");
-    const token = auth?.replace(/^Bearer\s+/i, "").trim();
-    if (token !== REVALIDATE_SECRET) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   let body: { type?: string; id?: string } = {};
@@ -45,12 +58,7 @@ export async function POST(request: NextRequest) {
       revalidated.push(detailPath);
     }
   } else {
-    ["short", "category", "digital"].forEach((t) => {
-      revalidatePath(`/reading/${t}`);
-      revalidated.push(`/reading/${t}`);
-    });
-    revalidatePath("/reading");
-    revalidated.push("/reading");
+    revalidated.push(...revalidateAllPaths());
   }
 
   return NextResponse.json({ revalidated });

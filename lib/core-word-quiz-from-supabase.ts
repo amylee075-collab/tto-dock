@@ -6,18 +6,36 @@ type Row = {
   id: string;
   sentence: string;
   correct_answer: string;
-  selectable_words: string[];
-  feedback_by_word: Record<string, string>;
+  selectable_words: string[] | unknown;
+  feedback_by_word?: Record<string, string> | string | null;
   sort_order: number | null;
 };
 
+/** 어드민에서 수정한 단어별 피드백이 항상 반영되도록 객체로 정규화 (문자열이면 JSON 파싱) */
+function normalizeFeedbackByWord(raw: Row["feedback_by_word"]): Record<string, string> {
+  if (raw == null) return {};
+  if (typeof raw === "object" && !Array.isArray(raw)) return raw as Record<string, string>;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, string>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 function rowToItem(row: Row, index: number): CoreWordQuizItem {
   return {
-    id: row.sort_order ?? index + 1,
+    id: (row.sort_order ?? index + 1) as number,
+    quizId: row.id,
     sentence: row.sentence,
     correctAnswer: row.correct_answer,
-    selectableWords: row.selectable_words ?? [],
-    feedbackByWord: row.feedback_by_word ?? {},
+    selectableWords: Array.isArray(row.selectable_words) ? row.selectable_words : [],
+    feedbackByWord: normalizeFeedbackByWord(row.feedback_by_word),
   };
 }
 

@@ -1,4 +1,3 @@
-import { digitalLiteracy } from "@/lib/data";
 import { getContentsByTypeFromSupabase } from "@/lib/content-from-supabase";
 import StoryCard from "@/components/reading/StoryCard";
 
@@ -12,10 +11,8 @@ export const metadata = {
 };
 
 export default async function DigitalListPage() {
-  const fromSupabase = await getContentsByTypeFromSupabase("digital");
-  const localIds = new Set(digitalLiteracy.map((s) => s.id));
-  const onlyFromSupabase = fromSupabase.filter((s) => !localIds.has(s.id));
-  const ordered = onlyFromSupabase.length ? [...onlyFromSupabase, ...digitalLiteracy] : digitalLiteracy;
+  const raw = await getContentsByTypeFromSupabase("digital");
+  const ordered = Array.isArray(raw) ? raw : [];
 
   return (
     <div className="w-full max-w-7xl">
@@ -25,17 +22,25 @@ export default async function DigitalListPage() {
       <p className="text-gray-600 mb-8">
         신문 기사와 미디어 비판 글을 읽고 어휘를 익힌 뒤 퀴즈를 풀어 보세요.
       </p>
-      <ul className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {ordered.map((story) => (
-          <StoryCard
-            key={story.id}
-            href={`/reading/digital/${story.id}`}
-            thumbnail={story.thumbnail}
-            title={story.title}
-            badges={story.badges}
-          />
-        ))}
-      </ul>
+      {ordered.length === 0 ? (
+        <p className="text-gray-500 py-6" role="status">
+          등록된 디지털 문해력 콘텐츠가 없습니다. 어드민에서 새로운 글을 추가해 주세요.
+        </p>
+      ) : (
+        <ul className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {ordered.map((story) => (
+            <StoryCard
+              key={story.id}
+              href={`/reading/digital/${story.id}`}
+              thumbnail={story.thumbnail}
+              title={story.title}
+              section={story.section}
+              badges={story.badges ?? []}
+              difficulty={story.difficulty}
+            />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

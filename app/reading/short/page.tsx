@@ -1,36 +1,48 @@
-import { shortStories } from "@/lib/data";
 import { getContentsByTypeFromSupabase } from "@/lib/content-from-supabase";
 import StoryCard from "@/components/reading/StoryCard";
 
-/** 정적 배포 방지·캐시 미사용 — 어드민 수정사항 즉시 반영 */
+// Cache kill: always fetch latest admin edits
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const TITLE = "짧은 글 읽기 | 또독";
+const DESC =
+  "짧은 글을 읽고 어휘를 익힌 뒤 퀴즈를 풀어 보세요.";
+const H1 = "짧은 글 읽기";
+
+export const metadata = {
+  title: TITLE,
+  description: DESC,
+};
+
 export default async function ShortReadingListPage() {
-  const fromSupabase = await getContentsByTypeFromSupabase("short");
-  const localIds = new Set(shortStories.map((s) => s.id));
-  const onlyFromSupabase = fromSupabase.filter((s) => !localIds.has(s.id));
-  const ordered = onlyFromSupabase.length ? [...onlyFromSupabase, ...shortStories] : shortStories;
+  const raw = await getContentsByTypeFromSupabase("short");
+  const stories = Array.isArray(raw) ? raw : [];
 
   return (
     <div className="w-full max-w-7xl">
-      <h1 className="font-extrabold text-2xl text-[#212529] mb-2">
-        짧은 글 읽기
-      </h1>
-      <p className="text-gray-600 mb-8">
-        명작과 고전을 읽고 어휘를 익힌 뒤 퀴즈를 풀어 보세요.
-      </p>
-      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-        {ordered.map((story, index) => (
-          <StoryCard
-            key={story.id}
-            href={`/reading/short/${story.id}`}
-            thumbnail={story.thumbnail}
-            title={story.title}
-            badges={story.badges?.length ? story.badges : ["짧은 글"]}
-          />
-        ))}
-      </ul>
+      <h1 className="font-extrabold text-2xl text-[#212529] mb-2">{H1}</h1>
+      <p className="text-gray-600 mb-8">{DESC}</p>
+      {stories.length === 0 ? (
+        <p className="text-gray-500 py-6" role="status">
+          준비된 글이 없습니다. 어드민에서 새 글을 추가해 주세요.
+        </p>
+      ) : (
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {stories.map((story) => (
+            <StoryCard
+              key={story.id}
+              href={`/reading/short/${story.id}`}
+              thumbnail={story.thumbnail}
+              title={story.title}
+              section={story.section}
+              badges={story.badges ?? []}
+              difficulty={story.difficulty}
+            />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
+

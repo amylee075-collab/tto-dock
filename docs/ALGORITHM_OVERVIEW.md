@@ -164,6 +164,40 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 
 ---
 
+### 5.4 독후 활동 3단계(핵심 단어 → 독해 → 요약)
+
+**위치:** `components/reading/ShortStoryQuizContainer.tsx`
+
+- **데이터 원천:** Supabase `contents` 테이블 jsonb 컬럼  
+  - `core_quiz`: { question, answer, sentence?, similarAnswers? }  
+  - `read_quizzes`: [{ q, options: string[], ans: number }]  
+  - `summary_quiz`: { requiredKeywords?, exampleAnswer?, charLimitByGrade? }
+
+#### (1) Step 1 — 핵심 단어
+
+- `core_quiz.sentence`에 있는 정답 단어(`answer`)를 찾아, UI에서 해당 구간을 **주황색 물음표 박스**로 치환.
+- 주관식 채점은 `normalizeAnswer`로 **띄어쓰기 제거 후 비교**.
+- `similarAnswers` 배열이 있으면, 동일한 정규화 값은 모두 정답으로 인정.
+
+#### (2) Step 2 — 독해 퀴즈
+
+- 각 문제는 `{ q, options, ans }` 구조.
+- 옵션은 페이지 진입 시 **Fisher–Yates 셔플**로 순서를 섞고, 정답 인덱스는 셔플된 순서에 맞춰 재매핑.
+- 하단 피드백/다음 버튼 영역은 **`min-height` 고정**으로 버튼 클릭 시 레이아웃이 흔들리지 않도록 함.
+
+#### (3) Step 3 — 요약하기
+
+- 사용자가 작성한 요약 텍스트 길이를 기준으로 **학년별 글자 수 카운터** 표시.  
+  - `summary_quiz.charLimitByGrade["3" | "4" | ...]`에서 우선순위로 limit를 가져와 UI에 노출.
+- 제출 후 `recharts` 기반 **방사형 그래프(이해력/사고력/표현력)**를 고정 스코어로 렌더링하여 피드백 느낌 제공.
+
+#### (4) 공통 완료 메시지
+
+- 3단계 퀴즈가 종료되면 결과 화면에서 다음 문구를 **줄바꿈 포함**으로 노출:
+  - `"준비된 또독 단어 퀴즈가 모두 끝났습니다.\n내일 다시 도전해 봐요!"`
+
+---
+
 ## 6. 읽기 타이머
 
 **위치:** `lib/hooks/useReadingTimer.ts`

@@ -31,26 +31,33 @@ const BADGE_STYLE: Record<WordType, string> = {
 
 type Props = {
   wordList?: TodayWordItem[];
+  /** 서버에서 정한 '오늘의 단어' 1개 — 있으면 이걸 상단에 노출 (퀴즈에서는 이 단어만 제외) */
+  featuredWord?: TodayWordItem | null;
   className?: string;
   variant?: "standalone" | "inline";
 };
 
 export default function HeroWordQuiz({
   wordList,
+  featuredWord,
   className = "",
   variant = "standalone",
 }: Props) {
-  const [word, setWord] = useState<TodayWordItem | null>(null);
+  const [word, setWord] = useState<TodayWordItem | null>(featuredWord ?? null);
   const [activeTab, setActiveTab] = useState<"meaning" | "example">("meaning");
 
   useEffect(() => {
+    if (featuredWord) {
+      setWord(featuredWord);
+      return;
+    }
     if (wordList && wordList.length > 0) {
       const index = Math.floor(Math.random() * wordList.length);
       setWord(wordList[index]);
     } else {
       setWord(pickRandomTodayWord());
     }
-  }, [wordList]);
+  }, [wordList, featuredWord]);
 
   const isInline = variant === "inline";
 
@@ -77,16 +84,16 @@ export default function HeroWordQuiz({
       id="hero"
       className={`${
         isInline
-          ? "h-full min-h-[220px] flex flex-col"
-          : "rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 h-full min-h-[320px] flex flex-col"
+          ? "h-full min-h-[220px] flex flex-col min-h-0"
+          : "rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 h-full min-h-[320px] flex flex-col min-h-0"
       } ${className}`}
       aria-label="오늘의 단어"
     >
-      <div className="flex-1 flex flex-col min-h-0">
-        <h2 className="font-extrabold text-xl sm:text-2xl text-[#212529] mb-4">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0">
+        <h2 className="font-extrabold text-xl sm:text-2xl text-[#212529] mb-4 shrink-0">
           오늘의 단어
         </h2>
-        <div className="rounded-2xl bg-[#fff5f0] border border-[#ff5700]/10 p-5 sm:p-6 flex flex-col gap-3">
+        <div className="rounded-2xl bg-[#fff5f0] border border-[#ff5700]/10 p-5 sm:p-6 flex flex-col gap-3 flex-1 min-h-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-2xl sm:text-3xl font-extrabold text-[#ff5700]">
               {word.word}
