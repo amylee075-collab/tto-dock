@@ -604,8 +604,8 @@ export default function ShortStoryQuizContainer({
                 <div className="rounded-xl border border-gray-200 bg-white p-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">모델 예시 답안</h3>
                   <p className="text-sm text-[#212529] whitespace-pre-wrap min-h-[80px]">
-                    {summaryQuiz?.modelAnswer ||
-                      summaryQuiz?.exampleAnswer ||
+                    {summaryItems[summaryItems.length - 1]?.modelAnswer ||
+                      summaryItems[summaryItems.length - 1]?.exampleAnswer ||
                       "예시 답안이 준비되면 여기에서 확인할 수 있어요."}
                   </p>
                 </div>
