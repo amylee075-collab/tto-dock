@@ -26,7 +26,7 @@ function saveSolvedIds(ids: string[]) {
   try {
     const existing = loadSolvedIds();
     const set = new Set([...existing, ...ids]);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(set)));
   } catch {
     // ignore
   }
