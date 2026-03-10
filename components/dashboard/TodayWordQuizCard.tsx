@@ -73,7 +73,7 @@ export default function TodayWordQuizCard({
     const otherQuizWords = quizItems
       .filter((q) => q.id !== currentItem.id)
       .map((q) => q.word);
-    const others = [...new Set([...poolWords, ...otherQuizWords])]
+    const others = Array.from(new Set([...poolWords, ...otherQuizWords]))
       .filter((w) => w !== currentItem.word)
       .sort((a, b) => a.localeCompare(b, "ko"));
     const wrongs = others.slice(0, 2);
