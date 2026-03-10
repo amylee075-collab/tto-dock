@@ -129,8 +129,9 @@ export async function getQuizWordsFromSupabase(
     const optionPool = filtered.filter((w) => !quizIds.has(w.id));
     const poolWords = optionPool.map((w) => w.word);
     const quizItems = rawQuiz.map((item) => {
-      const others = [...new Set([...poolWords, ...rawQuiz.filter((q) => q.id !== item.id).map((q) => q.word)])]
-        .filter((w) => w !== item.word);
+      const others = Array.from(
+        new Set([...poolWords, ...rawQuiz.filter((q) => q.id !== item.id).map((q) => q.word)])
+      ).filter((w) => w !== item.word);
       const wrongs = shuffle(others).slice(0, 2);
       const options = shuffle([item.word, ...wrongs]);
       return { ...item, options };
