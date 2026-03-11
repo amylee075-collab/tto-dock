@@ -28,11 +28,7 @@ export default async function ShortStoryPage({ params }: PageProps) {
           퀴즈가 등록되지 않았습니다. 어드민에서 퀴즈를 등록해 주세요.
         </p>
       )}
-      <ShortStoryPageClient
-        story={story}
-        source="short"
-        initialStep={hasQuizFromSource ? "QUIZ" : "READING"}
-      />
+      <ShortStoryPageClient story={story} source="short" />
     </SetBreadcrumbTitle>
   );
 }

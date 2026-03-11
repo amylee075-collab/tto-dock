@@ -1,7 +1,6 @@
 import HeroWordQuiz from "@/components/dashboard/HeroWordQuiz";
 import TodayWordQuizCard from "@/components/dashboard/TodayWordQuizCard";
 import HomeTodayLearningSection from "@/components/dashboard/HomeTodayLearningSection";
-import HomeFreeLearningSection from "@/components/dashboard/HomeFreeLearningSection";
 import { getTodayWordsFromSupabase } from "@/lib/today-words-from-supabase";
 import { getQuizWordsFromSupabase } from "@/lib/quiz-words-from-supabase";
 import { TODAY_WORD_LIST } from "@/lib/todayWordList";
@@ -36,7 +35,7 @@ export default async function HomePage() {
       : "(unset)";
 
   return (
-    <div className="w-full min-w-0 max-w-[1280px] mx-auto flex flex-col gap-0 px-4 md:px-6 relative">
+    <div className="w-full min-w-0 max-w-[1280px] mx-auto flex flex-col gap-0 px-0 relative">
       {/* [디버그] Vercel이 바라보는 DB 확인용 — NEXT_PUBLIC_SUPABASE_URL 앞 10글자 */}
       <div
         className="fixed bottom-4 right-4 z-50 rounded bg-black/80 text-white px-2 py-1 text-xs font-mono"
@@ -47,12 +46,12 @@ export default async function HomePage() {
       {/* 1. 오늘의 단어 몰입 - 단독 카드 */}
       <section
         id="today-word-immersion"
-        className="scroll-mt-24 w-full py-8 md:py-10"
+        className="scroll-mt-24 w-full py-6 md:py-8"
         aria-label="오늘의 단어와 단어 퀴즈"
       >
         <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
           <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-stretch min-h-0">
-            <div className="md:w-1/2 flex flex-1 min-h-0 flex-col">
+            <div className="md:basis-2/5 md:max-w-[40%] flex flex-1 min-h-0 flex-col">
               <HeroWordQuiz
                 wordList={wordList}
                 featuredWord={featuredWord}
@@ -61,7 +60,7 @@ export default async function HomePage() {
               />
             </div>
             <div className="hidden md:block w-px bg-gray-200 rounded-full shrink-0" aria-hidden />
-            <div className="md:w-1/2 flex flex-1 min-h-0 flex-col pt-4 md:pt-0 border-t md:border-t-0 md:border-none border-gray-100 md:border-transparent">
+            <div className="md:basis-3/5 md:max-w-[60%] flex flex-1 min-h-0 flex-col pt-4 md:pt-0 border-t md:border-t-0 md:border-none border-gray-100 md:border-transparent">
               <TodayWordQuizCard
                 quizItems={quizItems}
                 optionPool={optionPool}
@@ -76,7 +75,7 @@ export default async function HomePage() {
       {/* 2. 오늘의 학습 - 추천형 (3카드 가로) */}
       <section
         id="today-learning-wrap"
-        className="w-full border-t border-gray-100 py-10 md:py-12"
+        className="w-full border-t border-gray-100 py-6 md:py-8"
         aria-label="오늘의 학습"
       >
         <HomeTodayLearningSection
@@ -84,15 +83,6 @@ export default async function HomePage() {
           todaySeed={todaySeed}
           recommended={recommended}
         />
-      </section>
-
-      {/* 3. 자유 학습 - 4카드 나열 */}
-      <section
-        id="free-learning-wrap"
-        className="w-full border-t border-gray-100 py-10 md:py-12"
-        aria-label="자유 학습"
-      >
-        <HomeFreeLearningSection />
       </section>
     </div>
   );

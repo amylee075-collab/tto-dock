@@ -14,7 +14,7 @@ export default function ReadingPageLayout({ children }: ReadingPageLayoutProps) 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
-      <div className="w-full max-w-[1440px] mx-auto px-0 py-8">
+      <div className="w-full max-w-[1440px] mx-auto px-0 py-3 md:py-4">
         {children}
       </div>
     </motion.div>

@@ -1,15 +1,29 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
+import {
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+} from "recharts";
 import type { ShortStory } from "@/lib/data";
-import ConfettiEffect from "./ConfettiEffect";
+import { getCPMTier } from "@/lib/hooks/useCPM";
 
 function normalizeAnswer(s: string): string {
   return s.replace(/\s+/g, "").trim();
+}
+
+function formatDuration(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const mm = Math.floor(safeSeconds / 60);
+  const ss = safeSeconds % 60;
+  return `${String(mm).padStart(2, "0")}분 ${String(ss).padStart(2, "0")}초`;
 }
 
 /** Fisher–Yates 셔플 */
@@ -26,6 +40,19 @@ export interface QuizCompletePayload {
   quizCorrect: number;
   quizTotal: number;
   cpm: number;
+  summaryFeedback?: string;
+  thinkingFeedback?: string;
+  radarScores?: {
+    vocabulary: number;
+    understanding: number;
+    thinking: number;
+    expression: number;
+  };
+  thinkingNotes?: Array<{
+    question: string;
+    userAnswer: string;
+    modelAnswer?: string;
+  }>;
 }
 
 interface ShortStoryQuizContainerProps {
@@ -39,7 +66,7 @@ interface ShortStoryQuizContainerProps {
   listHref?: string;
 }
 
-type QuizPhase = "core" | "coreFeedback" | "mcq" | "summary" | "summaryResult" | "RESULT";
+type QuizPhase = "core" | "coreFeedback" | "mcq" | "summary" | "RESULT";
 
 export default function ShortStoryQuizContainer({
   story,
@@ -49,6 +76,7 @@ export default function ShortStoryQuizContainer({
   listHref = "/reading/short",
 }: ShortStoryQuizContainerProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { title, coreQuiz, readQuizzes, summaryQuiz } = story;
   const summaryItems = Array.isArray(summaryQuiz)
     ? summaryQuiz
@@ -62,6 +90,7 @@ export default function ShortStoryQuizContainer({
   const [mcqFeedback, setMcqFeedback] = useState<"correct" | "wrong" | null>(null);
   const [mcqCorrectCount, setMcqCorrectCount] = useState(0);
   const [summaryText, setSummaryText] = useState("");
+  const [summaryAnswers, setSummaryAnswers] = useState<string[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryIndex, setSummaryIndex] = useState(0);
   const completedFired = useRef(false);
@@ -72,12 +101,51 @@ export default function ShortStoryQuizContainer({
   const hasQuizData = hasCoreQuiz;
   const totalSummaryCount = summaryItems.length;
   const totalMcqCount = readQuizzes?.length ?? 0;
-  const totalQuizzes =
+  const totalActivities =
     1 + // core
     totalMcqCount +
     totalSummaryCount;
+  const totalObjectiveQuizzes = 1 + totalMcqCount;
   const currentMcq = hasMcq && phase === "mcq" ? readQuizzes[mcqIndex] : null;
   const totalCorrect = (coreChecked ? 1 : 0) + mcqCorrectCount;
+  const hasSummaryResult = summaryAnswers.some((answer) => answer?.trim().length > 0);
+  const averageSummaryLength =
+    summaryAnswers.filter(Boolean).reduce((sum, answer) => sum + answer.length, 0) /
+    Math.max(summaryAnswers.filter(Boolean).length, 1);
+  const objectiveTotal = Math.max(totalObjectiveQuizzes, 1);
+  const objectiveAccuracy = totalCorrect / objectiveTotal;
+  const vocabularyScore = coreChecked ? 88 : 72;
+  const understandingScore =
+    totalMcqCount > 0 ? Math.round((mcqCorrectCount / totalMcqCount) * 100) : 80;
+  const thinkingScore = hasSummaryResult
+    ? Math.min(100, 68 + Math.floor(averageSummaryLength / 3))
+    : 70;
+  const expressionScore = hasSummaryResult
+    ? Math.min(100, 65 + Math.floor(averageSummaryLength / 2.5))
+    : 68;
+  const reportRadarData = [
+    { subject: "어휘력", value: vocabularyScore, fullMark: 100 },
+    { subject: "이해력", value: understandingScore, fullMark: 100 },
+    { subject: "사고력", value: thinkingScore, fullMark: 100 },
+    { subject: "표현력", value: expressionScore, fullMark: 100 },
+  ];
+  const summaryFeedback =
+    objectiveAccuracy >= 0.8 && averageSummaryLength >= 60
+      ? "글을 꼼꼼하게 읽는 편이에요.\n글의 내용을 파악한 문제를 풀 때는 서두르지 말고 글의 내용을 다시 떠올려 보세요."
+      : objectiveAccuracy >= 0.6
+        ? "핵심 내용을 잘 따라왔어요.\n조금만 더 천천히 읽고 근거를 떠올리면 더 정확하게 답할 수 있어요."
+        : "끝까지 집중해서 학습을 마쳤어요.\n다음에는 문장을 한 번 더 읽고 단서를 찾아보면 더 좋아질 거예요.";
+  const thinkingFeedback =
+    thinkingScore >= 90
+      ? "생각을 깊게 확장해서 자신의 의견을 또렷하게 표현했어요. 핵심 내용과 나의 생각이 잘 연결된 훌륭한 글쓰기였어요."
+      : thinkingScore >= 80
+        ? "글의 내용을 바탕으로 자신의 생각을 자연스럽게 덧붙였어요. 예시 답안과 비교하며 근거를 조금 더 자세히 써 보면 더 좋아질 거예요."
+        : "질문을 잘 읽고 끝까지 답안을 작성했어요. 다음에는 왜 그렇게 생각했는지 이유를 한두 문장 더 보태면 사고력이 더 잘 드러나요.";
+  const thinkingNotes = summaryItems.map((item, idx) => ({
+    question: item.question ?? `요약 문항 ${idx + 1}`,
+    userAnswer: summaryAnswers[idx] ?? "",
+    modelAnswer: item.modelAnswer || item.exampleAnswer || "",
+  }));
 
   /** 현재 MCQ 보기 셔플 순서 (표시 순서 → 원본 인덱스) */
   const shuffledOrder = useMemo(() => {
@@ -90,11 +158,34 @@ export default function ShortStoryQuizContainer({
       completedFired.current = true;
       onComplete({
         quizCorrect: totalCorrect,
-        quizTotal: totalQuizzes,
+        quizTotal: totalObjectiveQuizzes,
         cpm: resultCpm,
+        summaryFeedback,
+        thinkingFeedback,
+        radarScores: {
+          vocabulary: vocabularyScore,
+          understanding: understandingScore,
+          thinking: thinkingScore,
+          expression: expressionScore,
+        },
+        thinkingNotes,
       });
     }
-  }, [phase, hasQuizData, totalCorrect, totalQuizzes, resultCpm, onComplete]);
+  }, [
+    phase,
+    hasQuizData,
+    onComplete,
+    resultCpm,
+    summaryFeedback,
+    thinkingFeedback,
+    thinkingNotes,
+    thinkingScore,
+    totalCorrect,
+    totalObjectiveQuizzes,
+    understandingScore,
+    expressionScore,
+    vocabularyScore,
+  ]);
 
   /** 현재 문항 번호 (1-based). core=1, mcq=2..n, summary=n+1.. */
   const currentStepIndex =
@@ -102,7 +193,7 @@ export default function ShortStoryQuizContainer({
       ? 1
       : phase === "mcq"
         ? 2 + mcqIndex
-        : phase === "summary" || phase === "summaryResult"
+        : phase === "summary"
           ? 2 + totalMcqCount + summaryIndex
           : 1;
 
@@ -156,6 +247,9 @@ export default function ShortStoryQuizContainer({
 
   const handleSummarySubmit = () => {
     if (summaryText.trim().length < 20) return;
+    const nextAnswers = [...summaryAnswers];
+    nextAnswers[summaryIndex] = summaryText.trim();
+    setSummaryAnswers(nextAnswers);
     const isLastSummary = summaryIndex >= totalSummaryCount - 1;
     if (!isLastSummary) {
       // 다음 요약 문항으로 이동
@@ -163,30 +257,20 @@ export default function ShortStoryQuizContainer({
       setSummaryText("");
       return;
     }
-    // 마지막 문항이면 로딩 후 요약 결과 화면으로
+    // 마지막 문항이면 로딩 후 바로 통합 리포트 화면으로
     setSummaryLoading(true);
     setTimeout(() => {
       setSummaryLoading(false);
-      setPhase("summaryResult");
+      setPhase("RESULT");
     }, 900);
   };
 
-  const goToResult = () => setPhase("RESULT");
-
-  const summaryBase = summaryItems[0];
-  const summaryCharLimit =
-    (summaryBase?.charLimitByGrade && typeof summaryBase.charLimitByGrade === "object" &&
-      Object.keys(summaryBase.charLimitByGrade).length > 0)
-      ? Number((summaryBase.charLimitByGrade as Record<string, number>)["4"]) ||
-        Number((summaryBase.charLimitByGrade as Record<string, number>)["3"]) ||
-        Object.values(summaryBase.charLimitByGrade as Record<string, number>)[0]
-      : 200;
-  const radarData = [
-    { subject: "이해력", value: 80, fullMark: 100 },
-    { subject: "사고력", value: 82, fullMark: 100 },
-    // 요약 이후 표현력이 눈에 띄게 상승한 느낌으로 설정
-    { subject: "표현력", value: 95, fullMark: 100 },
-  ];
+  const summaryCharLimit = 200;
+  const todayLabel = new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
 
   if (!hasQuizData) {
     return (
@@ -206,127 +290,200 @@ export default function ShortStoryQuizContainer({
   }
 
   if (phase === "RESULT" && hasQuizData) {
-    const hasSummaryResult = !!(summaryItems.length > 0 && summaryText.trim().length > 0);
-    const expressionScore = hasSummaryResult
-      ? Math.min(100, 70 + Math.floor(summaryText.trim().length / 4))
-      : 80;
-    const resultRadarData = [
-      { subject: "이해력", value: 80, fullMark: 100 },
-      { subject: "사고력", value: 82, fullMark: 100 },
-      { subject: "표현력", value: expressionScore, fullMark: 100 },
-    ];
+    const totalChars = story.content.replace(/\s+/g, "").length;
+    const estimatedSeconds =
+      resultCpm > 0 ? Math.round((totalChars / resultCpm) * 60) : 0;
+    const speedTier = getCPMTier(resultCpm || 0);
 
     return (
-      <div className="w-full bg-white flex flex-col items-center p-4 py-12 relative overflow-hidden">
-        {/* 아주 연한 주황색 배경 폭죽 느낌 */}
-        <div className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen">
-          <ConfettiEffect />
-        </div>
+      <div className="w-full bg-white flex flex-col items-center py-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="relative w-full max-w-[1000px] flex flex-col items-center"
+          className="w-full max-w-5xl"
         >
-          <p className="text-2xl font-extrabold text-[#212529] mb-4 text-center">
-            오늘의 학습을 모두 마쳤어요!
-          </p>
-          <p className="text-gray-600 text-center whitespace-pre-line mb-8">
-            {"준비된 또독 단어 퀴즈가 모두 끝났습니다.\n내일 다시 도전해 봐요!"}
-          </p>
-          <span className="flex h-28 w-28 mb-8 items-center justify-center overflow-hidden rounded-full border-2 border-[#ff5700]/30 bg-[#fff5f0]">
-            <Image
-              src="/images/character.png"
-              alt="또독이"
-              width={112}
-              height={112}
-              className="w-full h-auto object-contain object-top"
-            />
-          </span>
-          {/* 기본 요약 박스: 퀴즈 개수 / 읽기 속도 */}
-          <div className="w-full rounded-2xl border border-gray-100 bg-gray-50/80 p-6 shadow-sm mb-8 space-y-4">
-            <p className="font-medium text-[#212529]">
-              퀴즈 맞춘 개수{" "}
-              <span className="text-[#ff5700] font-bold">
-                {totalCorrect} / {totalQuizzes}
-              </span>
-            </p>
-            <p className="font-medium text-[#212529]">
-              읽기 속도{" "}
-              <span className="text-[#ff5700] font-bold">{resultCpm} 글자 / 분</span>
-            </p>
+          <div className="pb-4">
+            <div className="rounded-3xl bg-gradient-to-r from-[#FFE6D1] to-[#FFB56A] px-6 py-4 shadow-sm">
+              <h1 className="text-center text-2xl font-extrabold text-[#212529]">
+                학습 리포트
+              </h1>
+            </div>
           </div>
 
-          {/* 또독의 독서 노트 - summary_quiz가 있고 요약을 작성한 경우에만 */}
-          {hasSummaryResult && (
-            <div className="w-full rounded-2xl border border-[#ffe1cc] bg-[#fff7f0] p-6 md:p-7 shadow-sm mb-8">
-              <h2 className="text-lg md:text-xl font-extrabold text-[#ff5700] mb-4">
-                또독의 독서 노트
-              </h2>
-              <p className="text-sm text-gray-700 mb-4">
-                오늘 작성한 요약과 예시 답안을 함께 보면서, 표현력이 얼마나 자랐는지 확인해 볼까요?
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="rounded-xl border border-white/60 bg-white/80 backdrop-blur-sm p-4">
-                  <h3 className="text-sm font-semibold text-[#ff5700] mb-2">나의 요약</h3>
-                  <p className="text-sm text-[#212529] whitespace-pre-wrap min-h-[80px]">
-                    {summaryText.trim()}
-                  </p>
+          <div className="flex flex-col gap-6">
+          <section className="rounded-3xl bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-6">
+              <div>
+                <p className="text-sm font-semibold text-[#F97316]">글 제목</p>
+                <h2 className="mt-2 text-3xl font-extrabold text-[#212529]">{title}</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="rounded-2xl bg-gray-50 p-4">
+                  <p className="text-sm font-medium text-gray-500">학습일</p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#212529]">{todayLabel}</p>
                 </div>
-                <div className="rounded-xl border border-white/60 bg-white/80 backdrop-blur-sm p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">예시 답안</h3>
-                  <p className="text-sm text-[#212529] whitespace-pre-wrap min-h-[80px]">
-                    {summaryItems[summaryItems.length - 1]?.modelAnswer ||
-                      summaryItems[summaryItems.length - 1]?.exampleAnswer ||
-                      "예시 답안이 준비되면 여기에서 확인할 수 있어요."}
+                <div className="rounded-2xl bg-gray-50 p-4">
+                  <p className="text-sm font-medium text-gray-500">읽기 속도</p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#212529]">{resultCpm} 글자/분</p>
+                  <p className="mt-1 text-sm font-semibold text-[#212529]">{speedTier.label}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 p-4">
+                  <p className="text-sm font-medium text-gray-500">걸린 시간</p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#212529]">{formatDuration(estimatedSeconds)}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 p-4">
+                  <p className="text-sm font-medium text-gray-500">퀴즈 정답률</p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#212529]">
+                    {totalCorrect} / {totalObjectiveQuizzes}
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-6 items-center">
+            </div>
+          </section>
+
+          <section className="rounded-3xl bg-white p-6 shadow-sm">
+            <div className="rounded-3xl bg-[#FFF7D6] p-5">
+              <div className="flex items-start gap-4">
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
+                  <Image
+                    src="/images/character_wink.jpg"
+                    alt="또독이 윙크"
+                    width={64}
+                    height={64}
+                    className="h-full w-full object-cover"
+                  />
+                </span>
                 <div>
-                  <p className="text-sm font-medium text-[#212529] mb-2">
-                    오늘의 요약 덕분에 <span className="text-[#ff5700] font-bold">표현력</span> 점수가 이렇게
-                    올랐어요!
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    막힘 없이 내 생각을 글로 풀어낼수록 표현력 점수가 조금씩 더 올라가요.
+                  <p className="text-sm font-bold text-[#D97706]">총평</p>
+                  <p className="mt-2 whitespace-pre-line text-base leading-7 text-[#212529]">
+                    {summaryFeedback}
                   </p>
                 </div>
-                <div className="h-[220px] w-full">
+              </div>
+            </div>
+          </section>
+
+          {summaryItems.length > 0 && (
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <div>
+                <h2 className="text-2xl font-extrabold text-[#212529]">사고력 글쓰기 분석</h2>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  내가 작성한 답안과 예시 답안을 비교해 볼까요?
+                </p>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-4">
+                {summaryItems.map((item, idx) => (
+                  <div
+                    key={`${idx}-${item.question ?? "summary"}`}
+                    className="rounded-3xl bg-gray-50 p-5"
+                  >
+                    <p className="text-sm font-bold text-[#F97316]">{idx + 1}번 문항</p>
+                    <p className="mt-2 text-xl font-bold text-[#212529]">
+                      {item.question ?? `요약 문항 ${idx + 1}`}
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="rounded-2xl bg-white p-4">
+                        <p className="text-sm font-semibold text-[#F97316]">나의 답안</p>
+                        <p className="mt-3 min-h-24 whitespace-pre-wrap text-sm leading-7 text-[#212529]">
+                          {summaryAnswers[idx]?.trim() || "작성한 답안이 아직 없어요."}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-white p-4">
+                        <p className="text-sm font-semibold text-gray-700">예시 답안</p>
+                        <p className="mt-3 min-h-24 whitespace-pre-wrap text-sm leading-7 text-[#212529]">
+                          {item.modelAnswer || item.exampleAnswer || "예시 답안이 준비되지 않았어요."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {summaryItems.length > 0 && (
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={resultRadarData}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="subject" tick={{ fill: "#212529", fontSize: 12 }} />
-                      <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#6b7280", fontSize: 10 }} />
+                    <RadarChart data={reportRadarData}>
+                      <PolarGrid stroke="#FDE7D7" />
+                      <PolarAngleAxis
+                        dataKey="subject"
+                        tick={{ fill: "#212529", fontSize: 13, fontWeight: 700 }}
+                      />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 100]}
+                        tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                      />
                       <Radar
-                        name="점수"
+                        name="학습 점수"
                         dataKey="value"
                         stroke="#F97316"
-                        fill="#F97316"
-                        fillOpacity={0.45}
+                        fill="#FDBA74"
+                        fillOpacity={0.35}
                         strokeWidth={2}
                       />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
+
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <h3 className="text-2xl font-extrabold text-[#212529]">영역별 결과</h3>
+                    <p className="mt-2 text-sm leading-6 text-gray-600">
+                      어휘, 이해, 사고, 표현 4개 영역에서 어떤 부분이 강점인지 살펴보고 다음 학습 방향을 확인해 보세요.
+                    </p>
+                  </div>
+                  <div className="rounded-3xl bg-[#FFF7D6] p-5">
+                    <div className="flex items-start gap-4">
+                      <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
+                        <Image
+                          src="/images/character_wink.jpg"
+                          alt="또독이 윙크"
+                          width={64}
+                          height={64}
+                          className="h-full w-full object-cover"
+                        />
+                      </span>
+                      <div>
+                        <p className="text-sm font-bold text-[#D97706]">텍스트 피드백 설명</p>
+                        <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#212529]">
+                          {thinkingFeedback}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </section>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+          </div>
+          <div className="grid w-full grid-cols-3 gap-3">
             <button
               type="button"
-              onClick={onBack}
-              className="rounded-xl px-6 py-3 font-semibold text-[#212529] border-2 border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+              onClick={() => router.push(pathname)}
+              className="rounded-2xl border-2 border-gray-200 bg-white px-4 py-4 text-sm font-semibold text-[#212529] transition-colors hover:bg-gray-50"
             >
-              다시 복습하기
+              다시 하기
             </button>
             <button
               type="button"
-              onClick={() => router.push(listHref)}
-              className="rounded-xl px-6 py-3 font-bold text-white bg-[#ff5700] hover:opacity-90 transition-opacity"
+              onClick={() => router.push("/reading")}
+              className="rounded-2xl border-2 border-gray-200 bg-white px-4 py-4 text-sm font-semibold text-[#212529] transition-colors hover:bg-gray-50"
             >
-              목록으로 돌아가기
+              다른 글 읽기
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/home")}
+              className="rounded-2xl bg-[#F97316] px-4 py-4 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            >
+              홈 화면
             </button>
           </div>
         </motion.div>
@@ -335,7 +492,7 @@ export default function ShortStoryQuizContainer({
   }
 
   const progressPercent =
-    totalQuizzes > 0 ? (currentStepIndex / totalQuizzes) * 100 : 0;
+    totalActivities > 0 ? (currentStepIndex / totalActivities) * 100 : 0;
 
   return (
     <div className="w-full bg-white flex flex-col items-center p-4 py-10 md:py-12">
@@ -344,7 +501,7 @@ export default function ShortStoryQuizContainer({
         <div className="mb-6">
           <div className="flex items-center justify-between text-xl font-semibold text-[#212529] mb-2">
             <span>
-              {currentStepIndex} / {totalQuizzes}
+              {currentStepIndex} / {totalActivities}
             </span>
           </div>
           <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -357,17 +514,21 @@ export default function ShortStoryQuizContainer({
           </div>
         </div>
 
-        {/* 헤더 카드 */}
+        {/* 공통 헤더 */}
         <div className="rounded-2xl border border-gray-100 bg-white p-6 md:p-8 shadow-sm mb-6">
-          <h1 className="font-extrabold text-3xl text-[#212529] mb-1">{title}</h1>
-          <p className="text-gray-600 text-xl">독해 실력을 확인해 봐요!</p>
+          <h1 className="font-extrabold text-3xl text-[#212529] mb-2">{title}</h1>
+          <p className="text-gray-600 text-lg md:text-xl">
+            문해 활동으로 나의 실력을 확인해요.
+          </p>
         </div>
 
         {/* 단계별 퀴즈 카드 */}
         <div className="rounded-2xl border border-gray-100 bg-white p-6 md:p-8 shadow-sm">
           {phase === "core" && coreQuiz && (
             <>
-              <h2 className="font-bold text-3xl text-[#212529] mb-4">핵심 단어 퀴즈</h2>
+              <h2 className="font-bold text-2xl md:text-3xl text-[#212529] mb-2">
+                1단계 | 핵심 단어 퀴즈
+              </h2>
               <p className="text-[#212529] font-medium text-xl mb-6">
                 {coreQuiz.sentence ? (
                   <>
@@ -389,7 +550,7 @@ export default function ShortStoryQuizContainer({
                   coreQuiz.question
                 )}
               </p>
-              <div className="flex flex-col sm:flex-row items-stretch gap-3">
+              <div className="flex flex-col lg:flex-row items-stretch gap-3">
                 <input
                   type="text"
                   value={coreInput}
@@ -401,13 +562,13 @@ export default function ShortStoryQuizContainer({
                   placeholder="정답을 입력하세요"
                   className="rounded-xl border-2 border-gray-200 px-5 py-4 text-xl text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#ff5700]/50 focus:border-[#ff5700] flex-1 min-w-0 min-h-[3.5rem]"
                 />
-                <div className="flex flex-row sm:flex-row gap-2 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                   <button
                     type="button"
                     onClick={handleCoreCheck}
                     className="rounded-xl px-6 py-4 min-h-[3.5rem] font-bold text-white bg-[#ff5700] hover:bg-[#e64d00] active:scale-[0.98] transition-all flex-1 sm:flex-none"
                   >
-                    정답 확인
+                    확인 완료!
                   </button>
                   <button
                     type="button"
@@ -432,6 +593,9 @@ export default function ShortStoryQuizContainer({
 
           {phase === "coreFeedback" && (
             <div className="text-center py-6">
+              <h2 className="font-bold text-2xl md:text-3xl text-[#212529] mb-4">
+                1단계 | 핵심 단어 퀴즈
+              </h2>
               <motion.p
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -449,23 +613,25 @@ export default function ShortStoryQuizContainer({
                 onClick={goToMcq}
                 className="rounded-xl px-8 py-4 min-h-[3.25rem] font-bold text-white bg-[#ff5700] hover:bg-[#e64d00] active:scale-[0.98] transition-all"
               >
-                {hasMcq ? "다음 퀴즈로" : hasSummary ? "요약하기로" : "결과 보기"}
+                {hasMcq ? "다음" : hasSummary ? "다음" : "제출하기"}
               </button>
             </div>
           )}
 
           {phase === "mcq" && currentMcq && shuffledOrder.length > 0 ? (
             <>
-              <h2 className="font-bold text-3xl text-[#212529] mb-2">독해 퀴즈</h2>
+              <h2 className="font-bold text-2xl md:text-3xl text-[#212529] mb-2">
+                2단계 | 내용 이해 퀴즈
+              </h2>
               <p className="text-[#212529] font-medium text-xl mb-6">{currentMcq.q}</p>
-              <ul className="space-y-4">
+              <ul className="space-y-3">
                 {shuffledOrder.map((origIdx, displayedIdx) => (
                   <li key={origIdx}>
                     <button
                       type="button"
                       onClick={() => handleMcqSelect(displayedIdx)}
                       disabled={mcqFeedback !== null}
-                      className={`w-full text-left rounded-xl border-2 px-5 py-4 text-xl transition-all disabled:opacity-80 min-h-[3.5rem] ${
+                      className={`w-full text-left rounded-2xl border-2 px-5 py-4 text-lg transition-all disabled:opacity-80 min-h-[4rem] ${
                         mcqFeedback === null
                           ? "border-gray-100 hover:border-[#ff5700]/40 hover:bg-[#fff5f0]"
                           : origIdx === currentMcq.ans
@@ -475,38 +641,45 @@ export default function ShortStoryQuizContainer({
                               : "border-gray-100 bg-gray-50"
                       }`}
                     >
-                      {currentMcq.options[origIdx]}
+                      <span className="flex items-center gap-3">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-[#212529]">
+                          {displayedIdx + 1}
+                        </span>
+                        <span>{currentMcq.options[origIdx]}</span>
+                      </span>
                     </button>
                   </li>
                 ))}
               </ul>
-              <div className="mt-6 min-h-[180px] flex flex-col justify-end">
+              <div className="mt-4 min-h-[196px] flex flex-col">
                 {mcqFeedback === null && (
-                  <button
-                    type="button"
-                    onClick={handleMcqSkip}
-                    className="rounded-xl px-5 py-3 font-bold text-gray-600 border-2 border-gray-200 bg-white hover:bg-gray-50 active:scale-[0.98] transition-all w-fit"
-                  >
-                    모르겠어요
-                  </button>
+                  <div className="flex justify-end mt-1">
+                    <button
+                      type="button"
+                      onClick={handleMcqSkip}
+                      className="rounded-lg px-4 py-2 text-sm font-bold text-gray-600 border border-gray-200 bg-white hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      모르겠어요
+                    </button>
+                  </div>
                 )}
                 {mcqFeedback === "correct" && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-5 rounded-xl bg-[#fff5f0] border border-[#ff5700]/20"
+                    className="mt-4 flex items-center gap-3 p-5 rounded-xl bg-sky-50 border border-sky-200"
                   >
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ff5700]/30 bg-white">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-sky-200 bg-white">
                       <Image src="/images/character.png" alt="" width={48} height={48} className="w-full h-auto object-contain" />
                     </span>
-                    <p className="font-bold text-xl text-[#212529]">정답이에요! 똑똑해!</p>
+                    <p className="font-bold text-xl text-sky-900">정답이에요! 정말 잘했어요!</p>
                   </motion.div>
                 )}
                 {mcqFeedback === "wrong" && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col gap-2 p-5 rounded-xl bg-amber-50 border border-amber-200"
+                    className="mt-4 flex flex-col gap-2 p-5 rounded-xl bg-amber-50 border border-amber-200"
                   >
                     <p className="font-medium text-xl text-amber-800">아쉬워요. 정답을 확인해 볼까요?</p>
                     <p className="text-lg text-amber-900">
@@ -518,9 +691,9 @@ export default function ShortStoryQuizContainer({
                   <button
                     type="button"
                     onClick={handleMcqNext}
-                    className="mt-6 rounded-xl px-8 py-4 min-h-[3.25rem] font-bold text-white bg-[#ff5700] hover:bg-[#e64d00] active:scale-[0.98] transition-all text-lg"
+                    className="mt-4 rounded-xl px-8 py-4 min-h-[3.25rem] font-bold text-white bg-[#ff5700] hover:bg-[#e64d00] active:scale-[0.98] transition-all text-lg"
                   >
-                    {mcqIndex + 1 < (readQuizzes?.length ?? 0) ? "다음 문제" : hasSummary ? "요약하기로" : "결과 보기"}
+                    {mcqIndex + 1 < (readQuizzes?.length ?? 0) ? "다음" : hasSummary ? "다음" : "제출하기"}
                   </button>
                 )}
               </div>
@@ -529,14 +702,10 @@ export default function ShortStoryQuizContainer({
 
           {phase === "summary" && totalSummaryCount > 0 && (
             <>
-              {summaryItems[summaryIndex] && (
-                <>
-                  <p className="text-sm text-gray-600 mb-2">
-                    요약 문항 {summaryIndex + 1} / {totalSummaryCount}
-                  </p>
-                </>
-              )}
-              <h2 className="font-bold text-3xl text-[#212529] mb-4">나의 생각 정리하기</h2>
+              <h2 className="font-bold text-2xl md:text-3xl text-[#212529] mb-2">
+                3단계 | 사고력 글쓰기 훈련
+              </h2>
+              <p className="text-[#ff5700] font-bold text-lg mb-4">나의 생각 정리하기</p>
               {summaryItems[summaryIndex]?.question && (
                 <p className="text-[#212529] font-semibold text-xl mb-4">
                   {summaryItems[summaryIndex]?.question}
@@ -545,10 +714,6 @@ export default function ShortStoryQuizContainer({
               {!summaryItems[summaryIndex]?.question && (
                 <p className="text-[#212529] font-medium text-lg mb-2">글을 읽고 요약해 보세요.</p>
               )}
-              <div className="mb-2 text-gray-600 text-sm">
-                글자 수: <span className="font-bold text-[#212529]">{summaryText.length}</span>
-                {summaryCharLimit ? ` / ${summaryCharLimit}` : ""}
-              </div>
               <textarea
                 value={summaryText}
                 onChange={(e) => setSummaryText(e.target.value)}
@@ -558,7 +723,8 @@ export default function ShortStoryQuizContainer({
               />
               <div className="mt-4 flex items-center justify-between gap-4">
                 <p className="text-xs text-gray-500">
-                  최소 <span className="font-semibold text-[#ff5700]">20자 이상</span> 입력하면 AI가 답변을 분석해 줘요.
+                  글자수: <span className="font-semibold text-[#212529]">{summaryText.length}/{summaryCharLimit}</span> | 최소
+                  <span className="font-semibold text-[#ff5700]"> 20자 이상</span> 입력하면 AI가 답변을 분석해 줘요.
                 </p>
                 <button
                   type="button"
@@ -590,46 +756,6 @@ export default function ShortStoryQuizContainer({
             </>
           )}
 
-          {phase === "summaryResult" && (
-            <div className="py-4">
-              <h2 className="font-bold text-3xl text-[#212529] mb-4">요약 결과</h2>
-              <p className="text-[#212529] font-medium text-lg mb-4">나의 답과 모델 답안을 함께 비교해 보세요.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                  <h3 className="text-sm font-semibold text-[#ff5700] mb-2">나의 답변</h3>
-                  <p className="text-sm text-[#212529] whitespace-pre-wrap min-h-[80px]">
-                    {summaryText.trim() || "아직 작성한 요약이 없어요."}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">모델 예시 답안</h3>
-                  <p className="text-sm text-[#212529] whitespace-pre-wrap min-h-[80px]">
-                    {summaryItems[summaryItems.length - 1]?.modelAnswer ||
-                      summaryItems[summaryItems.length - 1]?.exampleAnswer ||
-                      "예시 답안이 준비되면 여기에서 확인할 수 있어요."}
-                  </p>
-                </div>
-              </div>
-              <p className="text-[#212529] font-medium text-lg mb-4">요약 덕분에 표현력이 얼마나 좋아졌는지 볼까요?</p>
-              <div className="h-[280px] w-full max-w-md mx-auto">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#212529", fontSize: 14 }} />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#6b7280" }} />
-                    <Radar name="점수" dataKey="value" stroke="#F97316" fill="#F97316" fillOpacity={0.5} strokeWidth={2} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-              <button
-                type="button"
-                onClick={goToResult}
-                className="mt-8 rounded-xl px-8 py-4 min-h-[3.25rem] font-bold text-white bg-[#ff5700] hover:bg-[#e64d00] active:scale-[0.98] transition-all"
-              >
-                결과 보기
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>

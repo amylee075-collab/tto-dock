@@ -1,17 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 
 const categories = [
-  {
-    key: "basic",
-    title: "문해력 기초 훈련",
-    description: "문장에서 핵심 단어 찾기",
-    icon: "📋",
-    getHref: () => "/practice/core-word",
-  },
   {
     key: "short",
     title: "짧은 글 읽기",
@@ -45,7 +37,7 @@ const categories = [
 export default function ReadingHub() {
   return (
     <div className="py-8 sm:py-10 w-full">
-      <header className="text-center mb-10 sm:mb-12">
+      <header className="text-center mb-12 sm:mb-14">
         <h1 className="font-extrabold text-2xl sm:text-3xl text-[#212529] tracking-tight mb-2">
           또독 읽기
         </h1>
@@ -54,12 +46,12 @@ export default function ReadingHub() {
         </p>
       </header>
 
-      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 w-full">
+      <ul className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mx-auto">
         {categories.map((cat, index) => (
           <li key={cat.key} className="min-w-0">
             <Link href={cat.getHref()} className="block h-full group">
               <motion.article
-                className="h-full flex flex-col rounded-xl border border-gray-200 bg-white p-5 sm:p-6 overflow-hidden transition-colors duration-200 group-hover:border-[#FF5C00]/40"
+                className="h-full min-h-[220px] flex flex-col rounded-xl border border-gray-200 bg-white p-6 sm:p-7 overflow-hidden transition-colors duration-200 group-hover:border-[#FF5C00]/40"
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -69,25 +61,15 @@ export default function ReadingHub() {
                   className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-xl bg-[#fff5f0] text-2xl sm:text-3xl mb-4 overflow-hidden"
                   aria-hidden
                 >
-                  {cat.key === "basic" ? (
-                    <Image
-                      src="/images/character.png"
-                      alt=""
-                      width={72}
-                      height={72}
-                      className="w-full h-full object-contain object-center"
-                    />
-                  ) : (
-                    cat.icon
-                  )}
+                  {cat.icon}
                 </span>
                 <h2
-                  className="font-bold text-xl sm:text-2xl text-[#212529] mb-2"
+                  className="font-bold text-xl sm:text-2xl text-[#212529] mb-3"
                   style={{ color: "#212529" }}
                 >
                   {cat.title}
                 </h2>
-                <p className="text-base sm:text-lg text-gray-600 leading-relaxed flex-1">
+                <p className="text-base sm:text-lg text-gray-600 leading-relaxed flex-1 flex items-start">
                   {cat.description}
                 </p>
               </motion.article>

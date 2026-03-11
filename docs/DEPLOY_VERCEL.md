@@ -4,7 +4,7 @@
 
 ## 1. 어드민 저장 시 자동 재검증 (Webhook 없이 동작)
 
-- **콘텐츠 저장:** `POST /api/contents` 로 저장하면 **저장 성공 직후** 서버에서 홈(/), 읽기 목록·문해력 기초·마이페이지 등 **전체 경로를 자동으로 재검증**합니다. 별도 버튼이나 Vercel 대시보드 접속 불필요.
+- **콘텐츠 저장:** `POST /api/contents` 로 저장하면 **저장 성공 직후** 서버에서 홈(/), 읽기 목록·문해력 기초 훈련·마이페이지 등 **전체 경로를 자동으로 재검증**합니다. 별도 버튼이나 Vercel 대시보드 접속 불필요.
 - **단어/기타:** 어드민에서 단어를 수정·저장하는 경우, 저장 후 **한 번만** 재검증 API를 호출하면 됩니다.  
   - **GET** `https://<서비스 도메인>/api/revalidate?secret=<REVALIDATE_SECRET>`  
   - 또는 **POST** `https://<서비스 도메인>/api/revalidate` + 헤더 `Authorization: Bearer <REVALIDATE_SECRET>`  

@@ -63,7 +63,7 @@ export default function Breadcrumbs() {
   return (
     <nav
       aria-label="브레드크럼"
-      className="breadcrumb-nav sticky top-0 z-10 bg-white pt-4 pb-2 mb-2 text-sm text-gray-500 border-b border-gray-100"
+      className="breadcrumb-nav sticky top-0 z-10 bg-white pt-2 pb-2 mb-3 text-[13px] text-gray-500 border-b border-gray-100"
     >
       <ol className="flex flex-wrap items-center gap-2">
         {items.map((item, index) => (

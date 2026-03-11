@@ -34,7 +34,7 @@ export default function FreeLearningCards() {
   return (
     <section id="free-learning" className="scroll-mt-24">
       <h2 className="font-extrabold text-xl sm:text-2xl text-[#212529] mb-6 pb-3 border-b border-gray-100">
-        자유 학습
+        읽기 탐색
       </h2>
       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 w-full">
         <li className="min-w-0">

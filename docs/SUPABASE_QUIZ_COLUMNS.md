@@ -1,11 +1,11 @@
 # Supabase contents 테이블 — 3단계 퀴즈 컬럼
 
-어드민에서 3단계 독후 활동(핵심 단어, 독해, 요약) 데이터를 저장하려면 `contents` 테이블에 아래 컬럼을 추가하세요.
+어드민에서 3단계 문해 활동(핵심 단어, 독해, 요약) 데이터를 저장하려면 `contents` 테이블에 아래 컬럼을 추가하세요.
 
 ## 마이그레이션 SQL (Supabase SQL Editor에서 실행)
 
 ```sql
--- 3단계 독후 활동용 jsonb 컬럼 추가
+-- 3단계 문해 활동용 jsonb 컬럼 추가
 ALTER TABLE contents
   ADD COLUMN IF NOT EXISTS core_quiz jsonb DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS read_quizzes jsonb DEFAULT NULL,

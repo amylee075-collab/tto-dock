@@ -44,7 +44,7 @@ export default function HomeFreeLearningSection() {
         id="free-learning-title"
         className="font-extrabold text-xl sm:text-2xl text-[#212529] mb-6"
       >
-        자유 학습
+        읽기 탐색
       </h2>
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 w-full">
         {MENUS.map(({ key, title, subtitle, href, icon }) => (

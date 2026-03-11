@@ -105,7 +105,7 @@ export default function HeroWordQuiz({
             </span>
           </div>
 
-          <div className="flex gap-2 mt-1">
+          <div className="flex gap-2 mt-2">
             <button
               type="button"
               onClick={() => setActiveTab("meaning")}

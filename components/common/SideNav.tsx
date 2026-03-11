@@ -5,11 +5,9 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useSidebar } from "@/contexts/SidebarContext";
 
-/** 좌측 LNB: PC에서 260px / 80px(접힘) 토글, md 이상에서만 표시 */
-const navItems = [
-  { href: "/", label: "홈", icon: "🏠" },
-  { href: "/reading", label: "또독 읽기", icon: "📖" },
-  { href: "/mypage", label: "마이페이지", icon: "👤" },
+const readingChildren = [
+  { href: "/practice/core-word", label: "문해력 기초 훈련" },
+  { href: "/reading", label: "문해 학습" },
 ] as const;
 
 const ORANGE = "#FF5C00";
@@ -28,6 +26,25 @@ function MenuIcon({ className }: { className?: string }) {
         strokeLinejoin="round"
         strokeWidth={2}
         d="M4 6h16M4 12h16M4 18h16"
+      />
+    </svg>
+  );
+}
+
+function ChevronIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="m9 6 6 6-6 6"
       />
     </svg>
   );
@@ -67,11 +84,10 @@ export default function SideNav() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const { collapsed, toggle } = useSidebar();
-
-  const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
-  };
+  const isHomeActive = pathname === "/" || pathname === "/home";
+  const isReadingSectionActive =
+    pathname.startsWith("/reading") || pathname.startsWith("/practice/core-word");
+  const isMyPageActive = pathname.startsWith("/mypage");
 
   return (
     <aside
@@ -127,43 +143,107 @@ export default function SideNav() {
             collapsed ? "items-center" : ""
           }`}
         >
-          {navItems.map(({ href, label, icon }) => {
-            const active = isActive(href);
-            return (
-              <li
-                key={href}
-                className={`flex h-12 items-center w-full ${
-                  collapsed ? "justify-center" : ""
-                }`}
-              >
-                <Link
-                  href={href}
-                  title={collapsed ? label : undefined}
-                  className={`flex items-center h-12 rounded-xl text-lg font-semibold transition-colors ${
-                    collapsed
-                      ? "justify-center w-10 h-10 rounded-full shrink-0"
-                      : "gap-4 px-4 w-full min-w-0"
-                  } ${
-                    active
-                      ? "bg-orange-50 text-[#FF5C00]"
-                      : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
-                  }`}
-                >
-                  <span
-                    className="flex items-center justify-center w-6 h-6 shrink-0 text-xl leading-none"
-                    aria-hidden
-                  >
-                    {icon}
+          <li className={`flex items-center w-full ${collapsed ? "justify-center" : ""}`}>
+            <Link
+              href="/home"
+              title={collapsed ? "홈" : undefined}
+              className={`flex items-center h-12 rounded-xl text-lg font-semibold transition-colors ${
+                collapsed
+                  ? "justify-center w-10 h-10 rounded-full shrink-0"
+                  : "gap-4 px-4 w-full min-w-0"
+              } ${
+                isHomeActive
+                  ? "bg-orange-50 text-[#FF5C00]"
+                  : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
+              }`}
+            >
+              <span className="flex items-center justify-center w-6 h-6 shrink-0 text-xl leading-none" aria-hidden>
+                🏠
+              </span>
+              {!collapsed && <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden">홈</span>}
+            </Link>
+          </li>
+
+          <li className={`w-full ${collapsed ? "flex justify-center" : ""}`}>
+            <button
+              type="button"
+              title={collapsed ? "또독 읽기" : undefined}
+              onClick={() => {
+                if (collapsed) {
+                  toggle();
+                }
+              }}
+              className={`flex items-center h-12 rounded-xl text-lg font-semibold transition-colors w-full ${
+                collapsed
+                  ? "justify-center w-10 h-10 rounded-full shrink-0"
+                  : "gap-4 px-4 min-w-0"
+              } ${
+                isReadingSectionActive
+                  ? "bg-orange-50 text-[#FF5C00]"
+                  : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
+              }`}
+              aria-expanded={!collapsed}
+            >
+              <span className="flex items-center justify-center w-6 h-6 shrink-0 text-xl leading-none" aria-hidden>
+                📚
+              </span>
+              {!collapsed && (
+                <>
+                  <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden text-left">
+                    또독 읽기
                   </span>
-                  {!collapsed && (
-                    <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden">
-                      {label}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
+                  <ChevronIcon className="h-4 w-4 shrink-0 rotate-90" />
+                </>
+              )}
+            </button>
+
+            {!collapsed && (
+              <div className="grid grid-rows-[1fr] opacity-100">
+                <div className="overflow-hidden">
+                  <ul className="mt-1 ml-4 space-y-1 border-l border-orange-100 pl-3">
+                    {readingChildren.map(({ href, label }) => {
+                      const active = pathname.startsWith(href);
+                      return (
+                        <li key={href}>
+                          <Link
+                            href={href}
+                            className={`flex items-center rounded-xl px-3 py-2 text-base font-medium transition-colors ${
+                              active
+                                ? "bg-orange-50 text-[#FF5C00]"
+                                : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
+                            }`}
+                          >
+                            <span className="min-w-0 truncate">{label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </li>
+
+          <li className={`flex items-center w-full ${collapsed ? "justify-center" : ""}`}>
+            <Link
+              href="/mypage"
+              title={collapsed ? "마이페이지" : undefined}
+              className={`flex items-center h-12 rounded-xl text-lg font-semibold transition-colors ${
+                collapsed
+                  ? "justify-center w-10 h-10 rounded-full shrink-0"
+                  : "gap-4 px-4 w-full min-w-0"
+              } ${
+                isMyPageActive
+                  ? "bg-orange-50 text-[#FF5C00]"
+                  : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
+              }`}
+            >
+              <span className="flex items-center justify-center w-6 h-6 shrink-0 text-xl leading-none" aria-hidden>
+                👤
+              </span>
+              {!collapsed && <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden">마이페이지</span>}
+            </Link>
+          </li>
         </ul>
         {/* 빈 공간으로 로그인을 LNB 맨 아래로 밀기 */}
         <div className="flex-1 min-h-0 shrink-0" aria-hidden />

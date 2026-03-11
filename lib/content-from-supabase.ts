@@ -12,7 +12,7 @@ import { normalizeDifficultyToLevel } from "@/lib/difficulty-stars";
 /**
  * Supabase contents 테이블 필드 매핑 (실제 컬럼명과 동일)
  * 컬럼: id, title, thumbnail_url, content, type, vocabulary, section, badges(배열), difficulty,
- *       core_quiz, read_quizzes, summary_quiz (jsonb, 3단계 독후 활동)
+ *       core_quiz, read_quizzes, summary_quiz (jsonb, 3단계 문해 활동)
  * 분야·칩 데이터는 badges 필드만 사용. title은 그대로 제목 노출용.
  */
 type ContentRow = {

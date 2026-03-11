@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
   const difficulty =
     typeof b.difficulty === "number" && b.difficulty >= 1 && b.difficulty <= 3 ? b.difficulty : null;
 
-  // 3단계 독후 활동: core_quiz, read_quizzes, summary_quiz (jsonb)
+  // 3단계 문해 활동: core_quiz, read_quizzes, summary_quiz (jsonb)
   const core_quiz = b.core_quiz != null && typeof b.core_quiz === "object" ? b.core_quiz : undefined;
   const read_quizzes = Array.isArray(b.read_quizzes) ? b.read_quizzes : undefined;
   const summary_quiz = b.summary_quiz != null && typeof b.summary_quiz === "object" ? b.summary_quiz : undefined;

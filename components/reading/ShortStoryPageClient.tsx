@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import type { ShortStory } from "@/lib/data";
-import { addReadingResult, addQuizResult } from "@/lib/challenge-storage";
+import { useUserStatus } from "@/hooks/useUserStatus";
 import ShortStoryReading from "./ShortStoryReading";
 import ShortStoryQuizContainer from "./ShortStoryQuizContainer";
 import QuizErrorBoundary from "./QuizErrorBoundary";
@@ -22,18 +22,16 @@ interface ShortStoryPageClientProps {
   story: ShortStory;
   /** 분야별/디지털일 때만 챌린지 저장 */
   source?: StorySource;
-  /** 퀴즈 바로 진입 등 초기 단계 제어 */
-  initialStep?: PageStep;
 }
 
 export default function ShortStoryPageClient({
   story,
   source,
-  initialStep,
 }: ShortStoryPageClientProps) {
-  const [step, setStep] = useState<PageStep>(initialStep ?? "READING");
+  const [step, setStep] = useState<PageStep>("READING");
   const [resultCpm, setResultCpm] = useState(0);
   const goingToQuizRef = useRef(false);
+  const { isAuthenticated, saveProgress } = useUserStatus();
 
   /** 짧은 글 / 긴 글 / 분야별 / 디지털 모두 마이페이지 챌린지에 반영 */
   const isChallengeTracked =
@@ -43,30 +41,41 @@ export default function ShortStoryPageClient({
     async (cpm: number) => {
       if (goingToQuizRef.current) return;
       goingToQuizRef.current = true;
-      try {
-        if (isChallengeTracked) {
-          const sentences = countSentences(story.content);
-          addReadingResult(sentences);
-        }
-      } catch {
-        // 저장 실패해도 퀴즈 페이지로는 진입
-      }
       setResultCpm(cpm);
       setStep("QUIZ");
       setTimeout(() => {
         goingToQuizRef.current = false;
       }, 600);
     },
-    [isChallengeTracked, story.content]
+    []
   );
 
   const handleComplete = useCallback(
     (payload: QuizCompletePayload) => {
-      if (isChallengeTracked) {
-        addQuizResult(payload.quizCorrect, payload.quizTotal, payload.cpm);
+      if (isChallengeTracked && isAuthenticated) {
+        const sentences = countSentences(story.content);
+        void saveProgress({
+          logType: "reading_session",
+          contentId: story.id,
+          contentType: source ?? "short",
+          status: "completed",
+          payload: {
+            title: story.title,
+            source,
+            sentencesRead: sentences,
+            quizCorrect: payload.quizCorrect,
+            quizTotal: payload.quizTotal,
+            cpm: payload.cpm,
+            summaryFeedback: payload.summaryFeedback,
+            thinkingFeedback: payload.thinkingFeedback,
+            radarScores: payload.radarScores,
+            thinkingNotes: payload.thinkingNotes,
+            completed: true,
+          },
+        });
       }
     },
-    [isChallengeTracked]
+    [isAuthenticated, isChallengeTracked, saveProgress, source, story.content, story.id, story.title]
   );
 
   /** 진입 출처에 맞는 목록 URL (목록으로 돌아가기용) */

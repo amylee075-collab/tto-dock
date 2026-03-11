@@ -3,13 +3,12 @@ import "./globals.css";
 import SideNav from "@/components/common/SideNav";
 import BottomNav from "@/components/common/BottomNav";
 import MobileNavDrawer from "@/components/common/MobileNavDrawer";
+import MobileReadingTopNav from "@/components/common/MobileReadingTopNav";
 import MainContentArea from "@/components/common/MainContentArea";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { BreadcrumbProvider } from "@/contexts/BreadcrumbContext";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import ChallengeTTLGuard from "@/components/ChallengeTTLGuard";
 import SessionProvider from "@/components/providers/SessionProvider";
-import MigrationPrompt from "@/components/auth/MigrationPrompt";
 
 export const metadata: Metadata = {
   title: "또박또박 읽기, 또독!",
@@ -25,7 +24,6 @@ export default function RootLayout({
     <html lang="ko">
       <body className="h-screen antialiased font-pretendard bg-white overflow-hidden">
         <SessionProvider>
-          <MigrationPrompt />
           <SidebarProvider>
             <SideNav />
           <MobileNavDrawer />
@@ -33,9 +31,9 @@ export default function RootLayout({
           <MainContentArea>
             <main className="flex-1 min-h-0 flex flex-col overflow-hidden w-full">
               <div id="main-scroll-area" className="flex-1 overflow-y-auto min-h-0">
-                <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 md:pl-6 md:pr-6 lg:px-10 xl:px-12 pt-8 pb-32 md:pb-8">
+                <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 md:px-5 pt-2 pb-[calc(12px+3.5rem)] md:pb-3">
                   <BreadcrumbProvider>
-                    <ChallengeTTLGuard />
+                    <MobileReadingTopNav />
                     <Breadcrumbs />
                     {children}
                   </BreadcrumbProvider>

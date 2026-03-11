@@ -136,6 +136,25 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 - **짧은 글:** `getShortStoryById(id)` — `shortStories` 또는 `categoryStories` 등에서 id로 검색.
 - **긴 글:** `longStories`에서 id로 검색.
 
+### 4.5 분야별 글 읽기 필터·정렬
+
+**위치:** `components/reading/CategoryListClient.tsx`, `app/reading/category/page.tsx`
+
+- 서버 페이지 `app/reading/category/page.tsx`는 Supabase에서 `type === "category"` 목록만 가져와 클라이언트 컴포넌트에 전달.
+- 클라이언트 목록은 다음 필터칩을 제공:
+  - `전체`
+  - `과학`
+  - `역사`
+  - `사회`
+  - `예술`
+  - `기술·AI`
+- **칩 개수 계산:** 현재 전체 목록을 기준으로 각 필터에 해당하는 콘텐츠 수를 `reduce`로 집계해 `라벨 (개수)` 형식으로 노출.
+- **필터 판정:** `story.section === filter` 또는 `story.badges` 배열에 같은 문자열이 있으면 해당 분야로 간주.
+- **정렬 옵션**
+  - `제목 가나다순`: `title.localeCompare(..., "ko")`
+  - `난이도순`: `normalizeDifficultyToLevel(difficulty)`로 `1 → 2 → 3 → 미지정` 순 정렬 후 제목 보조 정렬
+- 필터 결과가 0건이면 빈 상태 메시지를 노출.
+
 ---
 
 ## 5. 퀴즈 정답 처리
@@ -152,7 +171,7 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
   `s.replace(/\s+/g, "").trim()`.
 - **판정:** `normalizeAnswer(userInput) === normalizeAnswer(answer)`.
 
-### 5.3 문해력 기초 퀴즈(핵심 단어 찾기) — 3단계 피드백
+### 5.3 문해력 기초 훈련(핵심 단어 찾기) — 3단계 피드백
 
 **위치:** `components/practice/CoreWordPractice.tsx`
 
@@ -164,7 +183,7 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 
 ---
 
-### 5.4 독후 활동 3단계(핵심 단어 → 독해 → 요약)
+### 5.4 문해 활동 3단계(핵심 단어 → 독해 → 요약)
 
 **위치:** `components/reading/ShortStoryQuizContainer.tsx`
 
@@ -172,6 +191,7 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
   - `core_quiz`: { question, answer, sentence?, similarAnswers? }  
   - `read_quizzes`: [{ q, options: string[], ans: number }]  
   - `summary_quiz`: { requiredKeywords?, exampleAnswer?, charLimitByGrade? }
+- 서비스 용어는 현재 `문해 활동`으로 통일하여 화면·문서·어드민 입력 구조에 동일하게 반영.
 
 #### (1) Step 1 — 핵심 단어
 
@@ -189,9 +209,17 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 
 - 사용자가 작성한 요약 텍스트 길이를 기준으로 **학년별 글자 수 카운터** 표시.  
   - `summary_quiz.charLimitByGrade["3" | "4" | ...]`에서 우선순위로 limit를 가져와 UI에 노출.
-- 제출 후 `recharts` 기반 **방사형 그래프(이해력/사고력/표현력)**를 고정 스코어로 렌더링하여 피드백 느낌 제공.
+- `summary_quiz`는 단일 객체가 아니라 **배열 구조**를 지원하며, 여러 문항의 `question`, `modelAnswer`, `requiredKeywords`를 순차적으로 노출할 수 있음.
+- 제출 후 요약 길이, 객관식 정답 수, 핵심 단어 정답 여부를 조합해 `어휘력 / 이해력 / 사고력 / 표현력` 4축 점수를 계산하고 `recharts` 기반 방사형 그래프로 렌더링.
+- 각 요약 답안은 결과 페이지 표시용을 넘어서 `thinkingNotes` 형태로 저장 payload에 포함되어 마이페이지 사고력 노트에서 재사용됨.
 
-#### (4) 공통 완료 메시지
+#### (4) 결과 화면
+
+- 결과 단계는 분리된 완료 화면이 아니라 **단일 학습 리포트** 형식으로 렌더링.
+- 상단에는 글 제목, 학습일, 읽기 속도, 걸린 시간, 퀴즈 정답률을 요약 표시.
+- `summary_quiz` 데이터가 있으면 사고력 글쓰기 분석, 영역별 결과(방사형 차트), 텍스트 피드백 설명을 추가 노출.
+
+#### (5) 공통 완료 메시지
 
 - 3단계 퀴즈가 종료되면 결과 화면에서 다음 문구를 **줄바꿈 포함**으로 노출:
   - `"준비된 또독 단어 퀴즈가 모두 끝났습니다.\n내일 다시 도전해 봐요!"`
@@ -209,60 +237,78 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 
 ---
 
-## 7. 챌린지·마이페이지 저장소(localStorage)
+## 7. 회원 중심 학습 저장(`study_logs`)
 
-**위치:** `lib/challenge-storage.ts`
+**위치:** `hooks/useUserStatus.ts`, `app/api/study-logs/route.ts`, `lib/study-log-types.ts`
 
-### 7.1 TTL(만료)
+### 7.1 저장 정책
 
-- **키:** `ttodock_weekly_challenge`
-- **만료:** 생성 시점(`createdAt`)으로부터 **168시간(7일)**.
-- **만료 시:** `readRaw()`에서 삭제 후 초기 데이터로 리셋.
+- 학습 저장은 **로그인한 계정 기준**으로만 수행.
+- 비회원은 `localStorage`에 학습 데이터를 저장하지 않으며, 새로고침 시 홈 퀴즈/읽기 상태가 초기화됨.
+- 마이페이지는 비회원에게 통계 대신 **로그인 유도 화면**만 노출.
 
-### 7.2 저장 데이터 구조
+### 7.2 공통 접근 훅 — `useUserStatus()`
 
-| 필드                   | 설명                          |
-|------------------------|-------------------------------|
-| createdAt              | 생성 시점(ms)                 |
-| totalSentencesRead     | 누적 읽은 문장 수            |
-| quizCorrect / quizTotal| 퀴즈 정답 수 / 전체 문제 수   |
-| lastWpm                | 마지막 기록 CPM(글자/분). 키는 호환용 유지 |
-| streakDays             | 연속 학습 일수                |
-| lastActivityDate       | 마지막 활동일 YYYY-MM-DD      |
-| weeklySentencesByDay   | [월~일] 요일별 문장 수 (7개)  |
-| weeklyWpmByDay         | [월~일] 요일별 CPM (7개)      |
-| dailyStats             | 날짜별 { sentences, wpm } (wpm 값은 CPM) |
+- 반환값
+  - `isAuthenticated`
+  - `authStatus`
+  - `todayKey`
+  - `loadProgress(logType)`
+  - `saveProgress(input)`
+  - `loadStudyLogs(logType?)`
+  - `loadDashboardData()`
+- 내부에서 `useSession()`으로 로그인 상태를 판별하고, 회원일 때만 `/api/study-logs`를 통해 저장/조회.
 
-### 7.3 요일 인덱스
+### 7.3 날짜 기준
 
-- **그래프/저장:** `(new Date().getDay() + 6) % 7` → 0=월, 6=일.
+- 모든 로그는 KST 기준 `YYYY-MM-DD` 문자열 `kst_date`를 사용.
+- `getKstDateKey()`는 `Intl.DateTimeFormat(..., { timeZone: "Asia/Seoul" })` 기반으로 오늘 날짜 키를 생성.
 
-### 7.4 읽기 완료 시 — `addReadingResult(sentencesRead)`
+### 7.4 저장 대상 로그
 
-- 만료 시: 새 챌린지로 초기화 후 오늘만 기록.
-- 아니면:  
-  - `totalSentencesRead` 누적  
-  - 오늘 요일 인덱스에 `weeklySentencesByDay[dayIdx]` 누적  
-  - `dailyStats[today].sentences` 누적  
-  - `lastActivityDate`가 오늘과 다르면:  
-    - 이전이 “어제”면 `streakDays += 1`  
-    - 그 외면 `streakDays = 1`  
-  - `lastActivityDate = today`
+| log_type | 설명 |
+|----------|------|
+| `daily_word_quiz` | 홈 단어 퀴즈 진행 상태, 선택 답안, 완료 여부 |
+| `reading_session` | 읽기 완료 후 퀴즈 결과, CPM, 총평, 사고력 노트, 방사형 점수 |
 
-### 7.5 퀴즈 완료 시 — `addQuizResult(correct, total, cpm)`
+### 7.5 홈 퀴즈 복구 로직
 
-- `quizCorrect`, `quizTotal` 누적, `lastWpm = cpm` (저장 키는 호환용)
-- `weeklyWpmByDay[dayIdx] = cpm`, `dailyStats[today].wpm = cpm`
-- 연속일·lastActivityDate 갱신 로직은 읽기와 동일.
+**위치:** `components/dashboard/TodayWordQuizCard.tsx`
 
-### 7.6 마이페이지 통계 — `getChallengeStatsForMypage()`
+- 회원일 때만 `loadProgress("daily_word_quiz")`로 오늘 로그를 조회.
+- 저장된 `payload.quizItems`, `step`, `answered`, `selectedWord`, `completed` 값을 상태에 다시 주입해 새로고침 후 즉시 복구.
+- 비회원은 마운트 시 항상 초기 상태로 리셋.
+- 마지막 문항을 풀면 `saveProgress({ logType: "daily_word_quiz", ... })`를 호출해 완료 상태를 `study_logs`에 저장.
+- 이미 오늘 완료한 회원은 퀴즈 시작 화면 대신 **완료 배지 + "오늘의 퀴즈 완료! 내일 다시 만나요"** 메시지를 즉시 노출.
 
-- **정답률:** `todayAccuracy = round((quizCorrect / quizTotal) * 100)` (전체 누적 기준).
-- **평균 속도(CPM):** `averageWpm = lastWpm` (실제 평균이 아닌 “최근 1회 CPM”. 필드명은 호환용).
-- **주간 문장 수:** “오늘부터 앞으로 7일” `getNext7Days()`를 X축으로, `dailyStats[날짜].sentences` 매핑.  
-  합이 `totalSentencesRead`보다 작으면 오늘에 차이만큼 보정.
-- **주간 CPM:** 동일 7일 기준, `dailyStats` 또는 `weeklyWpmByDay`에서 매핑. 오늘만 0이면 `lastWpm`으로 보정.
-- **라벨:** `last7DayLabels` = 위 7일의 `MM/DD` 포맷.
+### 7.6 읽기 결과 저장 로직
+
+**위치:** `components/reading/ShortStoryPageClient.tsx`, `components/reading/ShortStoryQuizContainer.tsx`
+
+- 결과 화면 도달 시 `onComplete(payload)`가 1회 호출.
+- 저장 payload에는 다음 정보가 포함:
+  - 제목, 타입, 읽은 문장 수
+  - 객관식 정답 수 / 전체 문제 수
+  - CPM
+  - 총평(`summaryFeedback`)
+  - 사고력 피드백(`thinkingFeedback`)
+  - 방사형 점수(`radarScores`)
+  - 사고력 노트(`thinkingNotes`)
+- 비회원은 저장하지 않고, 회원일 때만 `saveProgress({ logType: "reading_session", ... })` 실행.
+
+### 7.7 마이페이지 집계
+
+- `loadDashboardData()`는 회원일 때 `study_logs` 전체를 읽고 `aggregateDashboardStatsFromLogs()`로 집계.
+- 집계 항목
+  - `totalSentencesRead`
+  - `todayAccuracy`
+  - `averageWpm`
+  - `streakDays`
+  - `weeklySentencesByDay`
+  - `weeklyWpmByDay`
+  - `last7DayLabels`
+  - `thinkingNotes`
+- 데이터가 없으면 `hasAnyData = false`로 빈 상태 `"아직 학습 기록이 없어요"`를 노출.
 
 ---
 
