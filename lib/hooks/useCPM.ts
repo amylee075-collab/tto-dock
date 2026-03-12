@@ -183,18 +183,10 @@ export function useCPM(
 
   // ----- 최대 도달 문장 인덱스 갱신 (앞으로만 갱신, 뒤로 가기 시 유지) -----
   useEffect(() => {
+    if (!readingStarted) return;
     if (centerIndex === null || centerIndex < 0) return;
     setMaxReachedIndex((prev) => Math.max(prev, centerIndex));
-  }, [centerIndex]);
-
-  // ----- 읽기 시작 시 시작 시각 기록 (첫 문장 진입 시점으로 dwell 시작) -----
-  useEffect(() => {
-    if (!readingStarted || startTimeRef.current !== null) return;
-    const now = Date.now();
-    startTimeRef.current = now;
-    lastEnterTimeRef.current = now;
-    prevCenterIndexRef.current = centerIndex !== null && centerIndex >= 0 ? centerIndex : -1;
-  }, [readingStarted, centerIndex]);
+  }, [centerIndex, readingStarted]);
 
   // ----- 문장 전환 시 dwell 누적 (보정 적용) -----
   useEffect(() => {
@@ -306,6 +298,26 @@ export function useCPM(
     }
   }, [sentences, maxReachedIndex]);
 
+  const startReading = useCallback((startIndex = 0) => {
+    if (startTimeRef.current !== null) return;
+    const safeIndex =
+      sentences.length > 0
+        ? Math.max(0, Math.min(startIndex, sentences.length - 1))
+        : -1;
+    const now = Date.now();
+    startTimeRef.current = now;
+    lastEnterTimeRef.current = now;
+    prevCenterIndexRef.current = safeIndex;
+    readySinceRef.current = null;
+    effectiveTimeRef.current = 0;
+    lastDisplayedRef.current = 0;
+    smoothedRef.current = INITIAL_SMOOTH_CPM;
+    setElapsedSec(0);
+    setStatus("measuring");
+    setCpm(0);
+    setMaxReachedIndex(safeIndex);
+  }, [sentences.length]);
+
   useEffect(() => {
     if (!isActive) return;
     updateCPM();
@@ -326,6 +338,7 @@ export function useCPM(
     tierMessage: tierResult.message,
     readCount,
     isReady,
+    startReading,
     updateCPM,
   };
 }

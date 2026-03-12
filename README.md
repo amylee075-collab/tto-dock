@@ -12,7 +12,7 @@
 - **짧은 글 읽기 / 긴 글 읽기** — 동화·전래동화·명작 읽기 + 어휘 툴팁, 핵심 단어 퀴즈, 읽기 이해 퀴즈, 3단계 문해 활동(핵심 단어 → 독해 → 요약 + 학습 리포트)
 - **분야별 글 읽기** — `전체 / 과학 / 역사 / 사회 / 예술 / 기술·AI` 필터칩, 칩별 콘텐츠 개수 표시, `제목 가나다순 / 난이도순` 정렬
 - **문해력 기초 훈련** — 핵심 단어 찾기 연습, 3단계 피드백, 2회 오답 시 정답 공개, 완료 화면 제공
-- **마이페이지** — 로그인한 계정의 읽은 문장 수, 퀴즈 정답률, 평균 속도, 주간 학습량·속도 그래프, 사고력 노트, 성취 배지
+- **마이페이지** — `내 정보`, `내 정보 수정`, `나의 성장 리포트`를 분리한 구조로 로그인 계정의 학습 기록과 프로필을 관리
 - **통합 학습 저장** — 회원은 Supabase `study_logs`를 단일 저장소로 사용, 읽기 결과와 홈 퀴즈 상태를 계정 기준으로 복구
 
 ---
@@ -66,7 +66,7 @@ npm run dev
 tto-dock2/
 ├── app/                    # Next.js App Router 페이지
 │   ├── page.tsx            # 홈
-│   ├── mypage/             # 마이페이지
+│   ├── mypage/             # 마이페이지 (내 정보, 내 정보 수정, 성장 리포트)
 │   ├── practice/           # 문해력 기초 훈련 (핵심 단어 찾기)
 │   ├── admin/contents/[id]/# 콘텐츠 수정 (어드민, 3단계 문해 활동 퀴즈 포함)
 │   └── reading/            # 글 읽기
@@ -93,6 +93,7 @@ tto-dock2/
     ├── CONTENTS_ADMIN.md        # 어드민 콘텐츠 등록 (API, categories/difficulty, 3단계 문해 활동 퀴즈 입력)
     ├── SUPABASE_QUIZ_COLUMNS.md # Supabase contents 테이블 3단계 문해 활동용 jsonb 컬럼 정의
     ├── STUDY_LOGS_SCHEMA.md     # Supabase study_logs 스키마와 payload 예시
+    ├── LEARNING_REPORT_COMMENT_SYSTEM.md # 학습 리포트 코멘트 규칙 기반 시스템 명세
     ├── DEPLOY_VERCEL.md         # Vercel 배포·Data Cache Purge·온디맨드 재검증
     ├── THUMBNAIL_IMAGE_GUIDE.md # 썸네일 이미지 가이드
     ├── CPM_IMPROVEMENT.md       # CPM 개선 사항
@@ -107,10 +108,11 @@ tto-dock2/
 
 | 문서 | 설명 |
 |------|------|
-| [알고리즘 정리](docs/ALGORITHM_OVERVIEW.md) | CPM 측정, 문장·어휘 분할, `study_logs` 저장 구조, 분야별 필터·정렬, 문해력 기초 훈련, 3단계 문해 활동, 마이페이지 피드백·배지 등 |
+| [알고리즘 정리](docs/ALGORITHM_OVERVIEW.md) | CPM 측정, 읽기 시작 오버레이, 문장·어휘 분할, `study_logs` 저장 구조, 분야별 필터·정렬, 문해력 기초 훈련, 3단계 문해 활동, 마이페이지 라우팅·피드백·배지 등 |
 | [콘텐츠 등록 (어드민)](docs/CONTENTS_ADMIN.md) | API 등록, title/categories/difficulty, 3단계 문해 활동 퀴즈 입력, 서비스 카드 반영 |
 | [Supabase 퀴즈 컬럼](docs/SUPABASE_QUIZ_COLUMNS.md) | contents 테이블 3단계 문해 활동용 jsonb 컬럼(`core_quiz`, `read_quizzes`, `summary_quiz`) 정의 |
 | [Study Logs 스키마](docs/STUDY_LOGS_SCHEMA.md) | 회원 학습 상태 복구용 `study_logs` 테이블 SQL과 payload 예시 |
+| [학습 리포트 코멘트 시스템](docs/LEARNING_REPORT_COMMENT_SYSTEM.md) | 학습 리포트 총평·영역별 결과용 규칙 기반 코멘트 시스템 명세 |
 | [Vercel 배포·캐시 제거](docs/DEPLOY_VERCEL.md) | 배포 스크립트, Data Cache Purge, 온디맨드 재검증 |
 | [썸네일 이미지 가이드](docs/THUMBNAIL_IMAGE_GUIDE.md) | 읽기 목록용 썸네일 규격 및 등록 방법 |
 | [CPM 개선](docs/CPM_IMPROVEMENT.md) | 읽기 속도 측정 개선 사항 |

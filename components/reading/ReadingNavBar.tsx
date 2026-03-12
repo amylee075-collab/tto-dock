@@ -10,6 +10,7 @@ interface ReadingNavBarProps {
   onNext: () => void;
   hasPrev: boolean;
   hasNext: boolean;
+  locked?: boolean;
   /** 마지막 문장일 때 버튼 문구(예: "퀴즈 풀기"). 있으면 hasNext와 무관하게 다음 버튼 활성화. */
   nextLabel?: string;
   className?: string;
@@ -20,6 +21,7 @@ export default function ReadingNavBar({
   onNext,
   hasPrev,
   hasNext,
+  locked = false,
   nextLabel = "다음",
   className = "",
 }: ReadingNavBarProps) {
@@ -38,7 +40,7 @@ export default function ReadingNavBar({
       <button
         type="button"
         onClick={onPrev}
-        disabled={!hasPrev}
+        disabled={locked || !hasPrev}
         className="min-h-[48px] min-w-[80px] rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#212529] transition-colors disabled:cursor-not-allowed disabled:opacity-40 hover:enabled:border-[#ff5700]/40 hover:enabled:bg-[#fff5f0] active:enabled:scale-[0.98] touch-manipulation"
         style={{ touchAction: "manipulation" }}
         aria-label="이전 문장"
@@ -48,7 +50,7 @@ export default function ReadingNavBar({
       <button
         type="button"
         onClick={onNext}
-        disabled={!nextEnabled}
+        disabled={locked || !nextEnabled}
         className="min-h-[48px] min-w-[80px] rounded-xl bg-[#ff5700] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-transform disabled:cursor-not-allowed disabled:opacity-40 hover:enabled:opacity-90 active:enabled:scale-[0.98] touch-manipulation"
         style={{ touchAction: "manipulation" }}
         aria-label={nextLabel === "퀴즈 풀기" ? "퀴즈로 이동" : "다음 문장"}

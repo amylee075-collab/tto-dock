@@ -22,6 +22,9 @@
 - `app/reading/digital/page.tsx`, `app/reading/digital/[id]/page.tsx`
 - `app/practice/core-word/page.tsx`
 - `app/mypage/page.tsx`
+- `app/mypage/info/page.tsx`
+- `app/mypage/info/edit/page.tsx`
+- `app/mypage/growth-report/page.tsx`
 - `app/debug-fetch/page.tsx`
 
 ## 3. 배포 후 자동 캐시 초기화 (수동 작업 제거)

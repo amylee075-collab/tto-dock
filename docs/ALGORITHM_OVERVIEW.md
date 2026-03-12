@@ -226,11 +226,15 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 
 ---
 
-## 6. 읽기 타이머
+## 6. 읽기 시작 오버레이와 타이머
 
-**위치:** `lib/hooks/useReadingTimer.ts`
+**위치:** `components/reading/ReadingStartOverlay.tsx`, `lib/hooks/useReadingTimer.ts`, `lib/hooks/useCPM.ts`
 
-- **시작:** 컴포넌트 마운트 시 0초부터 시작.
+- **초기 상태:** 읽기 상세 페이지 진입 직후에는 읽기 시작 오버레이가 먼저 노출되고, 타이머와 CPM 측정은 아직 시작하지 않음.
+- **시작 트리거:** 사용자가 `읽기 시작` 버튼을 누르면 `startReading()`이 호출되고 첫 문장(`activeIndex = 0`)이 활성화됨.
+- **오버레이 위치:** `fixed inset-0` 기준 중앙 정렬로 렌더링되어 모바일·태블릿에서도 별도 스크롤 없이 바로 시작 가능.
+- **효과:** 새로고침이나 중간 이탈 후 재진입 시 읽기 시간이 왜곡되는 문제를 줄이고, 모든 디바이스에서 동일한 시작 경험을 제공.
+- **타이머 시작:** 읽기 시작 후 0초부터 시작.
 - **간격:** 1초마다 +1, 최대 `60 * 60` (60:00).
 - **표기:** `MM:SS` (2자리 패딩).
 - **범위:** 단락(글) 읽기 페이지 진입 시마다 리셋(세션 유지 없음).
@@ -310,6 +314,16 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
   - `thinkingNotes`
 - 데이터가 없으면 `hasAnyData = false`로 빈 상태 `"아직 학습 기록이 없어요"`를 노출.
 
+### 7.8 마이페이지 라우팅 구조
+
+- `/mypage` 진입 시 기본 화면은 `/mypage/info`로 리다이렉트된다.
+- 하위 라우트
+  - `/mypage/info`: 내 정보
+  - `/mypage/info/edit`: 내 정보 수정
+  - `/mypage/growth-report`: 나의 성장 리포트
+- `middleware.ts`는 `/mypage/:path*` 전체에 인증 보호를 적용한다.
+- 사이드 메뉴 `마이페이지` 그룹은 `내 정보`와 `나의 성장 리포트` 하위 메뉴를 고정 노출한다.
+
 ---
 
 ## 8. 마이페이지 피드백·배지
@@ -347,11 +361,17 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 | sentences-500   | totalSentencesRead ≥ 500           |
 | week-streak      | streakDays ≥ 7                     |
 
+- `내 정보` 페이지는 프로필, 최근 획득 배지, 최근 학습 기록을 중심으로 구성된다.
+- `나의 성장 리포트`는 별도 페이지(`components/mypage/GrowthReportDashboard.tsx`)에서 학습자 한 줄 분석, 습관 카드, 활동 요약, 성장 곡선, 사고력 노트, 학습 코칭을 렌더링한다.
+- 성장 리포트의 `출석` 레이아웃은 제거되어 현재는 요약 수치와 그래프 중심으로 구성된다.
+
 ---
 
 ## 9. 읽기 후 코칭 메시지
 
 **위치:** `components/reading/CoachingFeedback.tsx` — `getFeedbackMessage(tier, quizCorrect, quizTotal)`
+
+- 학습 리포트 총평·영역별 결과용 상세 규칙은 `docs/LEARNING_REPORT_COMMENT_SYSTEM.md` 문서를 기준으로 확장한다.
 
 - **정답률:** `rate = round((quizCorrect / quizTotal) * 100)`.
 - **속도 코멘트:** tier별 고정 문구 (차근차근/안정적/매우 빠름).

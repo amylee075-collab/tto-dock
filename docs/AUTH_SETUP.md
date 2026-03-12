@@ -67,6 +67,6 @@ create policy "Service role only"
 - **이메일 가입**: `/auth/signup` → 이메일/비밀번호/만 14세/약관 동의 → `POST /api/auth/signup` (Supabase signUp) → 가입 직후 `user_profiles`에 반영(어드민에서 확인 가능) → 자동 로그인 후 홈으로 이동. (이메일 인증 필요 시에는 가입 완료 안내 후 로그인 페이지로.)
 - **이메일 로그인**: `/auth/login` → Credentials provider가 Supabase signInWithPassword 로 검증.
 - **구글 로그인**: 구글 OAuth → 첫 방문 시 `needsTermsAgreement` 로 `/auth/terms` 리다이렉트 → 동의 후 `POST /api/auth/agree-terms` → 이후 정상 이용.
-- **보호 라우트**: `/mypage`, `/reading/:id` (목록이 아닌 상세 한 단계) 는 미인증 시 `/auth/login?callbackUrl=...` 로 리다이렉트.
+- **보호 라우트**: `/mypage/:path*`, `/reading/:id` (목록이 아닌 상세 한 단계) 는 미인증 시 `/auth/login?callbackUrl=...` 로 리다이렉트.
 - **학습 기록 연동**: 로그인 후 localStorage 에 `ttodock_weekly_challenge` 데이터가 있으면 “이전 학습 기록을 연동하시겠습니까?” 팝업 → 승인 시 `POST /api/migrate-learning-data` 로 서버에 저장.
 - **비밀번호 재설정**: 로그인 페이지 "비밀번호를 잊으셨나요?" → `/auth/forgot-password` 에서 이메일 입력 → 해당 이메일로 재설정 링크 발송 → 링크 클릭 후 `/auth/set-password` 에서 새 비밀번호 입력. Supabase **Authentication → URL Configuration → Redirect URLs** 에 `http://localhost:3000/auth/set-password`(개발) 및 배포 도메인 경로를 추가해야 합니다.

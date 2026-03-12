@@ -14,6 +14,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   practice: "문해력 기초 훈련",
   "core-word": "문해력 기초 훈련",
   mypage: "마이페이지",
+  info: "내 정보",
+  "growth-report": "나의 성장 리포트",
 };
 
 function getSegmentLabel(segment: string): string {
@@ -36,11 +38,13 @@ export default function Breadcrumbs() {
 
   const segments = pathname.split("/").filter(Boolean);
   const depth = segments.length;
+  const shouldShowSingleLevelBreadcrumb =
+    pathname === "/mypage" || pathname === "/reading" || pathname === "/home";
 
   // 홈·인증 페이지에서는 미노출
   if (pathname === "/" || pathname.startsWith("/auth")) return null;
-  // 최소 2단계 이상에서만 노출
-  if (depth < 2) return null;
+  // 기본적으로 2단계 이상에서 노출하되, 일부 핵심 허브 페이지는 1단계도 노출
+  if (depth < 2 && !shouldShowSingleLevelBreadcrumb) return null;
 
   const items: { href: string; label: string; isLast: boolean }[] = [];
 

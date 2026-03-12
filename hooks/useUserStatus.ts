@@ -92,6 +92,9 @@ export function useUserStatus() {
           body: JSON.stringify({ log: record }),
         });
         if (!res.ok) return null;
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event(STUDY_LOGS_UPDATED_EVENT));
+        }
       } catch {
         return null;
       }

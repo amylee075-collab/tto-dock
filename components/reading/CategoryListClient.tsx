@@ -1,44 +1,58 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import StoryCard from "@/components/reading/StoryCard";
-import { normalizeDifficultyToLevel } from "@/lib/difficulty-stars";
 import type { ShortStory } from "@/lib/data";
+import type { CategoryContentFilter, CategoryContentSort } from "@/lib/content-from-supabase";
 
-type CategoryFilter = "전체" | "과학" | "역사" | "사회" | "예술" | "기술·AI";
-type SortOption = "title" | "difficulty";
-
-const FILTERS: CategoryFilter[] = ["전체", "과학", "역사", "사회", "예술", "기술·AI"];
+const FILTERS: CategoryContentFilter[] = ["전체", "과학", "역사", "사회", "예술", "기술·AI"];
 
 interface CategoryListClientProps {
   stories: ShortStory[];
+  initialStories: ShortStory[];
 }
 
-function hasFilterTag(story: ShortStory, filter: Exclude<CategoryFilter, "전체">): boolean {
+function hasFilterTag(story: ShortStory, filter: Exclude<CategoryContentFilter, "전체">): boolean {
   if (story.section === filter) return true;
   if (!Array.isArray(story.badges)) return false;
   return story.badges.some((badge) => String(badge).trim() === filter);
 }
 
-function sortStories(stories: ShortStory[], sortBy: SortOption): ShortStory[] {
-  const copied = [...stories];
-  if (sortBy === "difficulty") {
-    return copied.sort((a, b) => {
-      const levelA = normalizeDifficultyToLevel(a.difficulty) ?? 99;
-      const levelB = normalizeDifficultyToLevel(b.difficulty) ?? 99;
-      if (levelA !== levelB) return levelA - levelB;
-      return a.title.localeCompare(b.title, "ko");
-    });
-  }
-  return copied.sort((a, b) => a.title.localeCompare(b.title, "ko"));
+function CategoryListSkeleton() {
+  return (
+    <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3" aria-hidden>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <li
+          key={index}
+          className="overflow-hidden rounded-2xl border border-gray-200 bg-white"
+        >
+          <div className="aspect-video animate-pulse bg-gray-100" />
+          <div className="space-y-4 p-6">
+            <div className="flex gap-2">
+              <div className="h-7 w-16 animate-pulse rounded-full bg-gray-100" />
+              <div className="h-7 w-12 animate-pulse rounded-full bg-gray-100" />
+            </div>
+            <div className="h-7 w-3/4 animate-pulse rounded-lg bg-gray-100" />
+            <div className="h-12 w-full animate-pulse rounded-xl bg-gray-100" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
-export default function CategoryListClient({ stories }: CategoryListClientProps) {
-  const [activeFilter, setActiveFilter] = useState<CategoryFilter>("전체");
-  const [sortBy, setSortBy] = useState<SortOption>("title");
+export default function CategoryListClient({
+  stories,
+  initialStories,
+}: CategoryListClientProps) {
+  const [activeFilter, setActiveFilter] = useState<CategoryContentFilter>("전체");
+  const [sortBy, setSortBy] = useState<CategoryContentSort>("title");
+  const [displayStories, setDisplayStories] = useState<ShortStory[]>(initialStories);
+  const [isLoading, setIsLoading] = useState(false);
+  const didMountRef = useRef(false);
 
   const counts = useMemo(() => {
-    return FILTERS.reduce<Record<CategoryFilter, number>>((acc, filter) => {
+    return FILTERS.reduce<Record<CategoryContentFilter, number>>((acc, filter) => {
       acc[filter] =
         filter === "전체"
           ? stories.length
@@ -47,13 +61,50 @@ export default function CategoryListClient({ stories }: CategoryListClientProps)
     }, { 전체: 0, 과학: 0, 역사: 0, 사회: 0, 예술: 0, "기술·AI": 0 });
   }, [stories]);
 
-  const filteredStories = useMemo(() => {
-    const base =
-      activeFilter === "전체"
-        ? stories
-        : stories.filter((story) => hasFilterTag(story, activeFilter));
-    return sortStories(base, sortBy);
-  }, [activeFilter, sortBy, stories]);
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      setDisplayStories(initialStories);
+      return;
+    }
+
+    let ignore = false;
+    const controller = new AbortController();
+
+    const loadStories = async () => {
+      setIsLoading(true);
+      try {
+        const params = new URLSearchParams({
+          filter: activeFilter,
+          sortBy,
+        });
+        const res = await fetch(`/api/reading/category?${params.toString()}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error("failed to fetch category stories");
+        const data = (await res.json()) as { stories?: ShortStory[] };
+        if (!ignore) {
+          setDisplayStories(Array.isArray(data.stories) ? data.stories : []);
+        }
+      } catch (error) {
+        if (!ignore && !(error instanceof DOMException && error.name === "AbortError")) {
+          setDisplayStories([]);
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadStories();
+
+    return () => {
+      ignore = true;
+      controller.abort();
+    };
+  }, [activeFilter, initialStories, sortBy]);
 
   return (
     <div className="w-full max-w-7xl">
@@ -61,7 +112,7 @@ export default function CategoryListClient({ stories }: CategoryListClientProps)
         <div>
           <h1 className="font-extrabold text-2xl text-[#212529]">분야별 글 읽기</h1>
           <p className="mt-2 text-sm text-gray-500">
-            원하는 주제를 칩으로 골라보고, 제목 또는 난이도 기준으로 정렬해 보세요.
+            다양한 주제의 글을 읽으면서 문해력을 키워보아요.
           </p>
         </div>
 
@@ -69,11 +120,11 @@ export default function CategoryListClient({ stories }: CategoryListClientProps)
           <span className="text-sm font-semibold text-gray-600">정렬</span>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            onChange={(e) => setSortBy(e.target.value as CategoryContentSort)}
             className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-[#212529] shadow-sm outline-none transition focus:border-[#FF5C00] focus:ring-2 focus:ring-[#FFEDD5]"
             aria-label="분야별 글 정렬"
           >
-            <option value="title">제목 가나다순</option>
+            <option value="title">제목순</option>
             <option value="difficulty">난이도순</option>
           </select>
         </label>
@@ -100,7 +151,9 @@ export default function CategoryListClient({ stories }: CategoryListClientProps)
         })}
       </div>
 
-      {filteredStories.length === 0 ? (
+      {isLoading ? (
+        <CategoryListSkeleton />
+      ) : displayStories.length === 0 ? (
         <section className="rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-14 text-center">
           <p className="text-sm font-medium text-gray-500">
             선택한 필터에 해당하는 콘텐츠가 아직 없어요.
@@ -108,7 +161,7 @@ export default function CategoryListClient({ stories }: CategoryListClientProps)
         </section>
       ) : (
         <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {filteredStories.map((story) => (
+          {displayStories.map((story) => (
             <StoryCard
               key={story.id}
               href={`/reading/category/${story.id}`}

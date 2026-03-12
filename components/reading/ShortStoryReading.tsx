@@ -12,6 +12,7 @@ import { useCPM } from "@/lib/hooks/useCPM";
 import ShortStoryVocabTooltip from "./ShortStoryVocabTooltip";
 import ReadingNavBar from "./ReadingNavBar";
 import ReadingSidebar from "./ReadingSidebar";
+import ReadingStartOverlay from "./ReadingStartOverlay";
 
 const SLIDE = {
   initial: { opacity: 0 },
@@ -108,7 +109,7 @@ export default function ShortStoryReading({
   const [readingStarted, setReadingStarted] = useState(false);
 
   const { activeIndex, setActiveIndex, goNext, goPrev } = useActiveSentence(sentences.length);
-  const { cpm, status, tier, tierLabel, tierMessage, readCount, updateCPM } = useCPM(
+  const { cpm, status, tier, tierLabel, tierMessage, readCount, startReading, updateCPM } = useCPM(
     sentences,
     activeIndex,
     step === "READING",
@@ -116,6 +117,12 @@ export default function ShortStoryReading({
     story.id
   );
   const isOnLastSentence = sentences.length > 0 && activeIndex === sentences.length - 1;
+
+  const handleStartReading = () => {
+    setReadingStarted(true);
+    setActiveIndex(0);
+    startReading(0);
+  };
 
   const scrollMainToTop = () => {
     const el = document.getElementById("main-scroll-area");
@@ -223,10 +230,12 @@ export default function ShortStoryReading({
                 cpmStatus={status}
                 readCount={readCount}
                 totalSentences={sentences.length}
+                readingStarted={readingStarted}
                 asAccordion
               />
             </div>
             <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 w-full max-w-3xl lg:max-w-4xl">
+              <ReadingStartOverlay visible={!readingStarted} onStart={handleStartReading} />
               <h1 className="font-reading-title font-extrabold text-2xl md:text-3xl text-[#212529] mb-6">{title}</h1>
               <div className="pb-[var(--reading-nav-bar-height)]">
                 <p
@@ -236,8 +245,8 @@ export default function ShortStoryReading({
                   {sentences.map((sentence, i) => {
                     const segments =
                       sentenceSegments[i] ?? [{ type: "text" as const, value: sentence }];
-                    const isActive = activeIndex === i;
-                    const isRead = i < activeIndex;
+                    const isActive = readingStarted && activeIndex === i;
+                    const isRead = readingStarted && i < activeIndex;
                     return (
                       <Fragment key={i}>
                         {i > 0 && " "}
@@ -245,13 +254,13 @@ export default function ShortStoryReading({
                           role="button"
                           tabIndex={0}
                           onClick={() => {
-                            setReadingStarted(true);
+                            if (!readingStarted) return;
                             setActiveIndex(i);
                           }}
                           onKeyDown={(e) => {
+                            if (!readingStarted) return;
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setReadingStarted(true);
                               setActiveIndex(i);
                             }
                           }}
@@ -283,7 +292,7 @@ export default function ShortStoryReading({
               {step === "READING" && (
                 <ReadingNavBar
                   onPrev={() => {
-                    setReadingStarted(true);
+                    if (!readingStarted) return;
                     updateCPM();
                     goPrev();
                     updateCPM();
@@ -292,12 +301,13 @@ export default function ShortStoryReading({
                     isOnLastSentence
                       ? (onGoQuiz ? () => onGoQuiz(cpm) : goQuizIntro)
                       : () => {
-                          setReadingStarted(true);
+                          if (!readingStarted) return;
                           updateCPM();
                           goNext();
                           updateCPM();
                         }
                   }
+                  locked={!readingStarted}
                   hasPrev={activeIndex > 0}
                   hasNext={!isOnLastSentence && activeIndex < sentences.length - 1}
                   nextLabel={isOnLastSentence ? "퀴즈 풀기" : "다음"}
@@ -314,6 +324,7 @@ export default function ShortStoryReading({
                 cpmStatus={status}
                 readCount={readCount}
                 totalSentences={sentences.length}
+                readingStarted={readingStarted}
                 className="w-full lg:w-64 lg:max-w-[16rem]"
               />
             </div>

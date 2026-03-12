@@ -11,6 +11,9 @@ const COMPLETED_BADGE_TEXT = "오늘의 퀴즈 완료";
 const COMPLETED_MESSAGE = "오늘의 퀴즈 완료! 내일 다시 만나요";
 
 const ORANGE = "#F97316";
+const SENTENCE_QUIZ_LABEL = "빈칸에 들어갈 단어를 고르세요.";
+const MEANING_QUIZ_LABEL = "뜻을 읽고 알맞은 낱말을 고르세요.";
+const FALLBACK_MEANING = "뜻 정보가 아직 등록되지 않았어요.";
 
 /** 주황색 빈칸 박스 (물음표, 고정폭 120px) */
 function BlankBox() {
@@ -25,24 +28,21 @@ function BlankBox() {
   );
 }
 
-/** 예문에서 정답 단어 자리를 주황 빈칸 박스로 치환한 React 노드. 밑줄(____) 미사용 */
+/** 예문에서 첫 번째 정답 단어 자리만 주황 빈칸 박스로 치환 */
 function sentenceWithBlankNodes(sentence: string, word: string): React.ReactNode {
   const s = (sentence ?? "").trim();
   if (!s) return "이 단어의 의미로 올바른 것은?";
   if (!word.trim()) return s;
   const trimmed = word.trim();
-  const regex = new RegExp(trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let keyIdx = 0;
-  while ((match = regex.exec(s)) !== null) {
-    parts.push(s.slice(lastIndex, match.index));
-    parts.push(<BlankBox key={`blank-${keyIdx++}`} />);
-    lastIndex = match.index + match[0].length;
-  }
-  parts.push(s.slice(lastIndex));
-  return parts;
+  const matchIndex = s.indexOf(trimmed);
+  if (matchIndex < 0) return s;
+  const before = s.slice(0, matchIndex);
+  const after = s.slice(matchIndex + trimmed.length);
+  return [
+    before,
+    <BlankBox key="blank-first" />,
+    after,
+  ];
 }
 
 type Props = {
@@ -72,6 +72,14 @@ export default function TodayWordQuizCard({
   const totalQuestions = Math.min(MAX_QUESTIONS_PER_DAY, activeQuizItems.length);
   const isLastStep = totalQuestions > 0 && step === totalQuestions - 1;
   const currentItem = activeQuizItems[step] ?? null;
+  const quizPrompt =
+    currentItem?.quizType === "Meaning_Quiz"
+      ? MEANING_QUIZ_LABEL
+      : SENTENCE_QUIZ_LABEL;
+  const quizBody =
+    currentItem?.quizType === "Meaning_Quiz"
+      ? currentItem.meaning?.trim() || FALLBACK_MEANING
+      : sentenceWithBlankNodes(currentItem?.example ?? "", currentItem?.word ?? "");
 
   useEffect(() => {
     if (authStatus === "loading") return;
@@ -260,10 +268,10 @@ export default function TodayWordQuizCard({
                 className="text-sm font-medium mb-2 leading-relaxed"
                 style={{ color: ORANGE }}
               >
-                빈칸에 들어갈 단어를 고르세요 | {step + 1}/{totalQuestions}
+                {quizPrompt} | {step + 1}/{totalQuestions}
               </p>
               <p className="text-base sm:text-lg text-[#212529] font-medium leading-relaxed sm:leading-8">
-                {sentenceWithBlankNodes(currentItem.example, currentItem.word)}
+                {quizBody}
               </p>
             </div>
 

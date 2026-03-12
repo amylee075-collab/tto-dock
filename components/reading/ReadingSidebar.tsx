@@ -14,6 +14,7 @@ interface ReadingSidebarProps {
   readCount: number;
   totalSentences: number;
   cpmStatus?: CPMStatus;
+  readingStarted?: boolean;
   className?: string;
   /** 모바일: 상단 접이식(아코디언)으로 렌더 */
   asAccordion?: boolean;
@@ -48,6 +49,7 @@ export default function ReadingSidebar({
   readCount,
   totalSentences,
   cpmStatus = "ready",
+  readingStarted = true,
   className = "",
   asAccordion = false,
 }: ReadingSidebarProps) {
@@ -56,7 +58,7 @@ export default function ReadingSidebar({
   const [accordionOpen, setAccordionOpen] = useState(false);
   const prevCpmRef = useRef(cpm);
   const animRef = useRef<number | null>(null);
-  const elapsed = useReadingTimer();
+  const elapsed = useReadingTimer(readingStarted);
   const progressPercent =
     totalSentences > 0 ? Math.round((readCount / totalSentences) * 100) : 0;
   const isMeasuring = cpmStatus === "measuring";
@@ -233,7 +235,9 @@ export default function ReadingSidebar({
               )}
             </span>
             <p className="text-base font-medium text-[#212529] leading-snug min-w-0 flex-1 break-words">
-              {isMeasuring
+              {!readingStarted
+                ? "읽기 시작을 누르면 측정이 시작돼요."
+                : isMeasuring
                 ? "몇 문장 더 읽으면 속도가 표시돼요."
                 : tierMessage}
             </p>

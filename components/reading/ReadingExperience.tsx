@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, Fragment } from "react";
+import { useCallback, useEffect, useRef, useState, Fragment } from "react";
 import type { ReadingPassage } from "@/lib/data";
 import { useCPM } from "@/lib/hooks/useCPM";
 import { useActiveSentence } from "@/lib/hooks/useActiveSentence";
 import ReadingSidebar from "./ReadingSidebar";
 import ReadingNavBar from "./ReadingNavBar";
+import ReadingStartOverlay from "./ReadingStartOverlay";
 
 interface ReadingExperienceProps {
   passage: ReadingPassage;
@@ -19,13 +20,19 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
   const [readingStarted, setReadingStarted] = useState(false);
 
   const { activeIndex, setActiveIndex, goNext, goPrev } = useActiveSentence(sentences.length);
-  const { cpm, status, tier, tierLabel, tierMessage, updateCPM } = useCPM(
+  const { cpm, status, tier, tierLabel, tierMessage, readCount, startReading, updateCPM } = useCPM(
     sentences,
     activeIndex,
     isActive,
     readingStarted,
     passage.id
   );
+
+  const handleStartReading = useCallback(() => {
+    setReadingStarted(true);
+    setActiveIndex(0);
+    startReading(0);
+  }, [setActiveIndex, startReading]);
 
   const scrollMainToTop = () => {
     const el = document.getElementById("main-scroll-area");
@@ -127,12 +134,14 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
           tierLabel={tierLabel}
           tierMessage={tierMessage}
           cpmStatus={status}
-          readCount={activeIndex + 1}
+          readCount={readCount}
           totalSentences={sentences.length}
+          readingStarted={readingStarted}
           asAccordion
         />
       </div>
       <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 w-full max-w-3xl lg:max-w-4xl">
+        <ReadingStartOverlay visible={!readingStarted} onStart={handleStartReading} />
         <h1 className="font-reading-title font-extrabold text-2xl md:text-3xl text-[#212529] mb-2">
           {passage.title}
         </h1>
@@ -144,8 +153,8 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
             style={{ wordBreak: "keep-all" }}
           >
             {sentences.map((sentence, i) => {
-              const isActive = activeIndex === i;
-              const isRead = i < activeIndex;
+              const isActive = readingStarted && activeIndex === i;
+              const isRead = readingStarted && i < activeIndex;
               return (
                 <Fragment key={i}>
                   {i > 0 && " "}
@@ -153,13 +162,13 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
                     role="button"
                     tabIndex={0}
                     onClick={() => {
-                      setReadingStarted(true);
+                      if (!readingStarted) return;
                       setActiveIndex(i);
                     }}
                     onKeyDown={(e) => {
+                      if (!readingStarted) return;
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setReadingStarted(true);
                         setActiveIndex(i);
                       }
                     }}
@@ -182,17 +191,18 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
         </div>
         <ReadingNavBar
           onPrev={() => {
-            setReadingStarted(true);
+            if (!readingStarted) return;
             updateCPM();
             goPrev();
             updateCPM();
           }}
           onNext={() => {
-            setReadingStarted(true);
+            if (!readingStarted) return;
             updateCPM();
             goNext();
             updateCPM();
           }}
+          locked={!readingStarted}
           hasPrev={activeIndex > 0}
           hasNext={activeIndex < sentences.length - 1}
         />
@@ -205,8 +215,9 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
           tierLabel={tierLabel}
           tierMessage={tierMessage}
           cpmStatus={status}
-          readCount={activeIndex + 1}
+          readCount={readCount}
           totalSentences={sentences.length}
+          readingStarted={readingStarted}
           className="w-full lg:w-64 lg:max-w-[16rem]"
         />
       </div>

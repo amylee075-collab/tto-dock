@@ -10,21 +10,17 @@ import { getRandomRecommendedReadingFromSupabase } from "@/lib/content-from-supa
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-/** 오늘 날짜 시드로 한 개의 인덱스 결정 — 메인 상단에 노출할 '오늘의 단어' 1개 */
-function getFeaturedWordIndex(wordListLength: number, dateSeed: string): number {
-  if (wordListLength <= 0) return 0;
-  let h = 0;
-  for (let i = 0; i < dateSeed.length; i++) h = (h * 31 + dateSeed.charCodeAt(i)) >>> 0;
-  return h % wordListLength;
+function pickRandomFeaturedWord<T>(items: T[]): T | null {
+  if (items.length === 0) return null;
+  const index = Math.floor(Math.random() * items.length);
+  return items[index] ?? null;
 }
 
 export default async function HomePage() {
   const fromSupabase = await getTodayWordsFromSupabase();
   const wordList = fromSupabase.length > 0 ? fromSupabase : TODAY_WORD_LIST;
-  const todaySeed = new Date().toISOString().slice(0, 10);
   const recommended = await getRandomRecommendedReadingFromSupabase();
-  const featuredIndex = getFeaturedWordIndex(wordList.length, todaySeed);
-  const featuredWord = wordList[featuredIndex] ?? null;
+  const featuredWord = pickRandomFeaturedWord(wordList);
   /** 퀴즈에서 제외: 상단에 강조된 단어 딱 1개만. 전체 리스트 제외 금지 → 나머지 99개로 퀴즈 3개 생성 */
   const excludeWords = featuredWord ? [featuredWord.word] : [];
   const { quizItems, optionPool } = await getQuizWordsFromSupabase(excludeWords);
@@ -80,7 +76,7 @@ export default async function HomePage() {
       >
         <HomeTodayLearningSection
           wordList={wordList}
-          todaySeed={todaySeed}
+          todaySeed=""
           recommended={recommended}
         />
       </section>

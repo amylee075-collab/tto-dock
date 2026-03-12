@@ -106,6 +106,7 @@ export default function ShortStoryPageClient({
         resultCpm={resultCpm}
         onComplete={isChallengeTracked ? handleComplete : undefined}
         listHref={listHref}
+        storySource={source}
       />
     </QuizErrorBoundary>
   );

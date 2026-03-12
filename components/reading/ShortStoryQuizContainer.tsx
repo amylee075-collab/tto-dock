@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import type { ShortStory } from "@/lib/data";
 import { getCPMTier } from "@/lib/hooks/useCPM";
+import { buildLearningReportComment } from "@/lib/report-comment-builder";
 
 function normalizeAnswer(s: string): string {
   return s.replace(/\s+/g, "").trim();
@@ -34,6 +35,42 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function countIncludedKeywords(answer: string, keywords: string[] = []): number {
+  const normalizedAnswer = answer.trim();
+  if (!normalizedAnswer) return 0;
+  return keywords.filter((keyword) => keyword && normalizedAnswer.includes(keyword)).length;
+}
+
+function calculateSentenceVarietyScore(answers: string[]): number {
+  const sentences = answers
+    .flatMap((answer) =>
+      answer
+        .split(/[.!?\n]+/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+    );
+
+  if (sentences.length === 0) return 0;
+
+  const uniqueSentences = new Set(sentences.map((sentence) => sentence.replace(/\s+/g, " ")));
+  const uniqueRatio = uniqueSentences.size / sentences.length;
+  const sentenceCountBonus = Math.min(sentences.length, 4) * 12;
+  return Math.min(100, Math.round(uniqueRatio * 55 + sentenceCountBonus));
+}
+
+function calculateThinkingNoteQuality(
+  averageSummaryLength: number,
+  summaryKeywordCount: number,
+  sentenceVarietyScore: number
+): number {
+  const lengthScore = Math.min(100, Math.round(averageSummaryLength * 0.9));
+  const keywordScore = Math.min(100, summaryKeywordCount * 18);
+  return Math.min(
+    100,
+    Math.round(lengthScore * 0.45 + keywordScore * 0.25 + sentenceVarietyScore * 0.3)
+  );
 }
 
 export interface QuizCompletePayload {
@@ -64,6 +101,7 @@ interface ShortStoryQuizContainerProps {
   onComplete?: (payload: QuizCompletePayload) => void;
   /** 목록으로 돌아가기 링크 (진입 출처에 맞는 목록) */
   listHref?: string;
+  storySource?: "short" | "long" | "category" | "digital";
 }
 
 type QuizPhase = "core" | "coreFeedback" | "mcq" | "summary" | "RESULT";
@@ -74,6 +112,7 @@ export default function ShortStoryQuizContainer({
   resultCpm = 0,
   onComplete,
   listHref = "/reading/short",
+  storySource = "short",
 }: ShortStoryQuizContainerProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -112,8 +151,6 @@ export default function ShortStoryQuizContainer({
   const averageSummaryLength =
     summaryAnswers.filter(Boolean).reduce((sum, answer) => sum + answer.length, 0) /
     Math.max(summaryAnswers.filter(Boolean).length, 1);
-  const objectiveTotal = Math.max(totalObjectiveQuizzes, 1);
-  const objectiveAccuracy = totalCorrect / objectiveTotal;
   const vocabularyScore = coreChecked ? 88 : 72;
   const understandingScore =
     totalMcqCount > 0 ? Math.round((mcqCorrectCount / totalMcqCount) * 100) : 80;
@@ -123,18 +160,23 @@ export default function ShortStoryQuizContainer({
   const expressionScore = hasSummaryResult
     ? Math.min(100, 65 + Math.floor(averageSummaryLength / 2.5))
     : 68;
+  const summaryKeywordCount = summaryItems.reduce(
+    (sum, item, idx) =>
+      sum + countIncludedKeywords(summaryAnswers[idx] ?? "", item.requiredKeywords ?? []),
+    0
+  );
+  const sentenceVarietyScore = calculateSentenceVarietyScore(summaryAnswers);
+  const thinkingNoteQuality = calculateThinkingNoteQuality(
+    averageSummaryLength,
+    summaryKeywordCount,
+    sentenceVarietyScore
+  );
   const reportRadarData = [
     { subject: "어휘력", value: vocabularyScore, fullMark: 100 },
     { subject: "이해력", value: understandingScore, fullMark: 100 },
     { subject: "사고력", value: thinkingScore, fullMark: 100 },
     { subject: "표현력", value: expressionScore, fullMark: 100 },
   ];
-  const summaryFeedback =
-    objectiveAccuracy >= 0.8 && averageSummaryLength >= 60
-      ? "글을 꼼꼼하게 읽는 편이에요.\n글의 내용을 파악한 문제를 풀 때는 서두르지 말고 글의 내용을 다시 떠올려 보세요."
-      : objectiveAccuracy >= 0.6
-        ? "핵심 내용을 잘 따라왔어요.\n조금만 더 천천히 읽고 근거를 떠올리면 더 정확하게 답할 수 있어요."
-        : "끝까지 집중해서 학습을 마쳤어요.\n다음에는 문장을 한 번 더 읽고 단서를 찾아보면 더 좋아질 거예요.";
   const thinkingFeedback =
     thinkingScore >= 90
       ? "생각을 깊게 확장해서 자신의 의견을 또렷하게 표현했어요. 핵심 내용과 나의 생각이 잘 연결된 훌륭한 글쓰기였어요."
@@ -146,6 +188,70 @@ export default function ShortStoryQuizContainer({
     userAnswer: summaryAnswers[idx] ?? "",
     modelAnswer: item.modelAnswer || item.exampleAnswer || "",
   }));
+  const reportContentType =
+    storySource === "long"
+      ? "long_story"
+      : storySource === "short"
+        ? "short_story"
+        : storySource;
+  const reportComment = useMemo(
+    () =>
+      buildLearningReportComment({
+        contentType: reportContentType,
+        readingCpm: resultCpm,
+        readingDurationSec:
+          resultCpm > 0 ? Math.round((story.content.replace(/\s+/g, "").length / resultCpm) * 60) : 0,
+        quizCorrect: totalCorrect,
+        quizTotal: totalObjectiveQuizzes,
+        passageChars: story.content.replace(/\s+/g, "").length,
+        coreWordCorrect: coreChecked === true,
+        synonymRecognition: coreChecked === true,
+        vocabContextAccuracy: totalMcqCount > 0 ? Math.round((mcqCorrectCount / totalMcqCount) * 100) : 0,
+        readingQuizAccuracy: totalMcqCount > 0 ? Math.round((mcqCorrectCount / totalMcqCount) * 100) : 0,
+        summaryLength: averageSummaryLength,
+        summaryKeywordCount,
+        summarySentenceVariety: sentenceVarietyScore,
+        inferenceAccuracy: totalMcqCount > 0 ? Math.round((mcqCorrectCount / totalMcqCount) * 100) : 0,
+        thinkingNoteQuality,
+      }),
+    [
+      averageSummaryLength,
+      coreChecked,
+      mcqCorrectCount,
+      reportContentType,
+      resultCpm,
+      sentenceVarietyScore,
+      story.content,
+      summaryKeywordCount,
+      thinkingNoteQuality,
+      totalCorrect,
+      totalMcqCount,
+      totalObjectiveQuizzes,
+    ]
+  );
+  const showDetailedReport = reportComment.hasDetailedFeedback;
+  const showSummaryAnalysis = showDetailedReport && summaryItems.length > 0;
+  const detailedFeedbackItems = [
+    reportComment.vocabularyFeedback
+      ? { label: "어휘력", feedback: reportComment.vocabularyFeedback }
+      : null,
+    reportComment.comprehensionFeedback
+      ? { label: "이해력", feedback: reportComment.comprehensionFeedback }
+      : null,
+    reportComment.expressionFeedback
+      ? { label: "표현력", feedback: reportComment.expressionFeedback }
+      : null,
+    reportComment.thinkingFeedback
+      ? { label: "사고력", feedback: reportComment.thinkingFeedback }
+      : null,
+  ].filter(Boolean) as Array<{
+    label: string;
+    feedback: {
+      good: string;
+      improve: string;
+      tip: string;
+    };
+  }>;
 
   /** 현재 MCQ 보기 셔플 순서 (표시 순서 → 원본 인덱스) */
   const shuffledOrder = useMemo(() => {
@@ -160,8 +266,14 @@ export default function ShortStoryQuizContainer({
         quizCorrect: totalCorrect,
         quizTotal: totalObjectiveQuizzes,
         cpm: resultCpm,
-        summaryFeedback,
-        thinkingFeedback,
+        summaryFeedback: reportComment.summaryComment,
+        thinkingFeedback: reportComment.thinkingFeedback
+          ? [
+              reportComment.thinkingFeedback.good,
+              reportComment.thinkingFeedback.improve,
+              reportComment.thinkingFeedback.tip,
+            ].join(" ")
+          : thinkingFeedback,
         radarScores: {
           vocabulary: vocabularyScore,
           understanding: understandingScore,
@@ -176,8 +288,7 @@ export default function ShortStoryQuizContainer({
     hasQuizData,
     onComplete,
     resultCpm,
-    summaryFeedback,
-    thinkingFeedback,
+    reportComment,
     thinkingNotes,
     thinkingScore,
     totalCorrect,
@@ -294,7 +405,25 @@ export default function ShortStoryQuizContainer({
     const estimatedSeconds =
       resultCpm > 0 ? Math.round((totalChars / resultCpm) * 60) : 0;
     const speedTier = getCPMTier(resultCpm || 0);
-
+    const readingIndexScore = Math.round(
+      (vocabularyScore + understandingScore + thinkingScore + expressionScore) / 4
+    );
+    const readingIndexLabel =
+      readingIndexScore >= 90
+        ? "매우 높음"
+        : readingIndexScore >= 80
+          ? "높음"
+          : readingIndexScore >= 70
+            ? "안정적"
+            : "성장 중";
+    const readingIndexComment =
+      readingIndexScore >= 90
+        ? "읽기 지수가 매우 높아요. 글의 핵심을 빠르게 파악하고, 자신의 생각까지 또렷하게 연결하고 있어요."
+        : readingIndexScore >= 80
+          ? "읽기 지수가 높게 형성되고 있어요. 내용을 잘 이해하고 있으며, 근거를 조금 더 자세히 표현하면 더 탄탄해질 수 있어요."
+          : readingIndexScore >= 70
+            ? "읽기 지수가 안정적으로 쌓이고 있어요. 핵심 내용을 잘 따라가고 있으니, 답을 고를 때 글의 근거를 한 번 더 떠올려 보세요."
+            : "읽기 지수가 차근차근 성장하고 있어요. 천천히 다시 읽으며 핵심 단서를 찾는 연습을 하면 더 좋아질 거예요.";
     return (
       <div className="w-full bg-white flex flex-col items-center py-6">
         <motion.div
@@ -357,14 +486,14 @@ export default function ShortStoryQuizContainer({
                 <div>
                   <p className="text-sm font-bold text-[#D97706]">총평</p>
                   <p className="mt-2 whitespace-pre-line text-base leading-7 text-[#212529]">
-                    {summaryFeedback}
+                    {reportComment.summaryComment}
                   </p>
                 </div>
               </div>
             </div>
           </section>
 
-          {summaryItems.length > 0 && (
+          {showSummaryAnalysis && (
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <div>
                 <h2 className="text-2xl font-extrabold text-[#212529]">사고력 글쓰기 분석</h2>
@@ -403,58 +532,100 @@ export default function ShortStoryQuizContainer({
             </section>
           )}
 
-          {summaryItems.length > 0 && (
+          {showDetailedReport && (
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-                <div className="h-72 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={reportRadarData}>
-                      <PolarGrid stroke="#FDE7D7" />
-                      <PolarAngleAxis
-                        dataKey="subject"
-                        tick={{ fill: "#212529", fontSize: 13, fontWeight: 700 }}
-                      />
-                      <PolarRadiusAxis
-                        angle={90}
-                        domain={[0, 100]}
-                        tick={{ fill: "#9CA3AF", fontSize: 11 }}
-                      />
-                      <Radar
-                        name="학습 점수"
-                        dataKey="value"
-                        stroke="#F97316"
-                        fill="#FDBA74"
-                        fillOpacity={0.35}
-                        strokeWidth={2}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
+              <div className="mx-auto w-full max-w-5xl">
+                <div>
+                  <h3 className="text-2xl font-extrabold text-[#212529]">영역별 결과</h3>
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    영역별 학습 결과를 확인해 보세요.
+                  </p>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <h3 className="text-2xl font-extrabold text-[#212529]">영역별 결과</h3>
-                    <p className="mt-2 text-sm leading-6 text-gray-600">
-                      어휘, 이해, 사고, 표현 4개 영역에서 어떤 부분이 강점인지 살펴보고 다음 학습 방향을 확인해 보세요.
-                    </p>
+                <div className="mt-6 flex flex-col gap-6 md:flex-row">
+                  <div className="flex-1 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-gray-100">
+                    <div className="h-[320px] w-full sm:h-[360px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={reportRadarData}>
+                          <PolarGrid stroke="#FDE7D7" />
+                          <PolarAngleAxis
+                            dataKey="subject"
+                            tick={{ fill: "#212529", fontSize: 13, fontWeight: 700 }}
+                          />
+                          <PolarRadiusAxis
+                            angle={90}
+                            domain={[0, 100]}
+                            tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                          />
+                          <Radar
+                            name="학습 점수"
+                            dataKey="value"
+                            stroke="#F97316"
+                            fill="#FDBA74"
+                            fillOpacity={0.35}
+                            strokeWidth={2}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <div className="rounded-3xl bg-[#FFF7D6] p-5">
-                    <div className="flex items-start gap-4">
-                      <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
+
+                  <div className="flex-1 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-gray-100">
+                    <div className="flex items-center gap-4">
+                      <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF7D6]">
                         <Image
                           src="/images/character_wink.jpg"
                           alt="또독이 윙크"
-                          width={64}
-                          height={64}
+                          width={56}
+                          height={56}
                           className="h-full w-full object-cover"
                         />
                       </span>
                       <div>
-                        <p className="text-sm font-bold text-[#D97706]">텍스트 피드백 설명</p>
-                        <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#212529]">
-                          {thinkingFeedback}
-                        </p>
+                        <p className="text-sm font-semibold text-[#F97316]">학습 분석</p>
+                        <h4 className="mt-1 text-2xl font-extrabold text-[#212529]">결과 요약</h4>
                       </div>
+                    </div>
+
+                    <div className="mt-6 rounded-2xl bg-[#FFF7D6] p-5">
+                      <p className="text-sm font-bold text-[#D97706]">
+                        읽기 지수 {readingIndexScore}점 · {readingIndexLabel}
+                      </p>
+                      <p className="mt-2 text-sm leading-7 text-[#212529]">
+                        {readingIndexComment}
+                      </p>
+                    </div>
+
+                    <ul className="mt-6 space-y-3">
+                      <li className="flex gap-3 text-sm leading-7 text-[#212529]">
+                        <span className="mt-2 inline-block h-2 w-2 shrink-0 rounded-full bg-[#F97316]" />
+                        <span>{reportComment.speedComment}</span>
+                      </li>
+                      <li className="flex gap-3 text-sm leading-7 text-[#212529]">
+                        <span className="mt-2 inline-block h-2 w-2 shrink-0 rounded-full bg-[#F97316]" />
+                        <span>{reportComment.timeComment}</span>
+                      </li>
+                      {!showSummaryAnalysis && (
+                        <li className="flex gap-3 text-sm leading-7 text-[#212529]">
+                          <span className="mt-2 inline-block h-2 w-2 shrink-0 rounded-full bg-[#F97316]" />
+                          <span>{reportComment.summaryComment}</span>
+                        </li>
+                      )}
+                    </ul>
+
+                    <div className="mt-6 border-t border-gray-100 pt-6">
+                      <p className="text-base font-bold text-[#212529]">영역별 강점 피드백</p>
+                      <ul className="mt-4 space-y-3">
+                        {detailedFeedbackItems.map((item) => (
+                          <li key={item.label} className="flex gap-3 text-sm leading-7 text-[#212529]">
+                            <span className="mt-2 inline-block h-2 w-2 shrink-0 rounded-full bg-[#F97316]" />
+                            <span>
+                              <span className="font-bold text-[#F97316]">{item.label}</span>
+                              {` · ${item.feedback.good} ${item.feedback.improve} ${item.feedback.tip}`}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 </div>

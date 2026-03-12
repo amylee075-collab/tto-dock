@@ -1,4 +1,7 @@
-import { getContentsByTypeFromSupabase } from "@/lib/content-from-supabase";
+import {
+  getCategoryContentsFromSupabase,
+  getContentsByTypeFromSupabase,
+} from "@/lib/content-from-supabase";
 import CategoryListClient from "@/components/reading/CategoryListClient";
 
 /** 정적 배포 방지·캐시 미사용 — 어드민 수정사항 즉시 반영 */
@@ -11,8 +14,11 @@ export const metadata = {
 };
 
 export default async function CategoryListPage() {
-  const fromSupabase = await getContentsByTypeFromSupabase("category");
-  const merged = Array.isArray(fromSupabase) ? fromSupabase : [];
+  const [allStories, initialStories] = await Promise.all([
+    getContentsByTypeFromSupabase("category"),
+    getCategoryContentsFromSupabase({ filter: "전체", sortBy: "title" }),
+  ]);
+  const merged = Array.isArray(allStories) ? allStories : [];
 
   return (
     <>
@@ -21,7 +27,7 @@ export default async function CategoryListPage() {
           등록된 분야별 콘텐츠가 없습니다. 어드민에서 새로운 글을 추가해 주세요.
         </p>
       ) : (
-        <CategoryListClient stories={merged} />
+        <CategoryListClient stories={merged} initialStories={initialStories} />
       )}
     </>
   );

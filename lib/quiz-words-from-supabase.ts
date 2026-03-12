@@ -7,12 +7,14 @@ export type QuizWordItem = {
   meaning: string;
   /** 예문 — today_words_100.csv / DB 컬럼명 example. 비어 있으면 기본 질문으로 퀴즈 유지 */
   example: string;
+  quizType: "Sentence_Quiz" | "Meaning_Quiz";
   /** 문항별 셔플된 보기 3개 [정답, 오답1, 오답2]. 서버에서 한 번만 섞어 하이드레이션 일치 */
   options?: string[];
 };
 
 /** 예문이 비어 있어도 퀴즈가 멈추지 않도록 기본 문구 (3개 퀴즈 보장) */
 const DEFAULT_EXAMPLE = "이 단어의 의미로 올바른 것은?";
+const DEFAULT_MEANING = "뜻 정보가 아직 등록되지 않았어요.";
 
 type WordsRow = { id: string; word: string; meaning: string; example?: string };
 type TodayWordsRow = { id: string; word: string; meaning: string; example?: string };
@@ -53,15 +55,36 @@ function safeMapRow(
   try {
     const word = (row.word ?? "").toString().trim();
     if (!word) return null;
+    const example = toExample(row);
+    const meaning = (row.meaning ?? "").toString().trim() || DEFAULT_MEANING;
     return {
       id: (row as { id?: string }).id ?? String(fallbackId),
       word,
-      meaning: (row.meaning ?? "").toString(),
-      example: toExample(row),
+      meaning,
+      example,
+      quizType: example.includes(word) ? "Sentence_Quiz" : "Meaning_Quiz",
     };
   } catch {
     return null;
   }
+}
+
+function buildQuizItems(sourceItems: QuizWordItem[], distractorPool: QuizWordItem[]): QuizWordItem[] {
+  return sourceItems.map((item) => {
+    const distractorWords = Array.from(
+      new Set(
+        distractorPool
+          .map((candidate) => candidate.word)
+          .filter((candidateWord) => candidateWord && candidateWord !== item.word)
+      )
+    );
+    const wrongs = shuffle(distractorWords).slice(0, 2);
+    const options = shuffle([item.word, ...wrongs]).slice(0, 3);
+    return {
+      ...item,
+      options,
+    };
+  });
 }
 
 export async function getQuizWordsFromSupabase(
@@ -84,10 +107,21 @@ export async function getQuizWordsFromSupabase(
     .order("created_at", { ascending: false })
     .limit(100);
 
+  const { data: wordsData, error: wordsError } = await supabase
+    .from("words")
+    .select("id, word, meaning, example")
+    .limit(100);
+
   if (!todayError && todayData && todayData.length > 0) {
     const mapped: QuizWordItem[] = (todayData as TodayWordsRow[])
       .map((row, i) => safeMapRow(row, i + 1))
       .filter((item): item is QuizWordItem => item != null);
+    const mappedWords: QuizWordItem[] =
+      !wordsError && wordsData && wordsData.length > 0
+        ? (wordsData as WordsRow[])
+            .map((row, i) => safeMapRow(row, i + 1001))
+            .filter((item): item is QuizWordItem => item != null)
+        : [];
     let filtered =
       excludeSet.size > 0
         ? mapped.filter((w) => !excludeSet.has(w.word))
@@ -96,23 +130,13 @@ export async function getQuizWordsFromSupabase(
     const shuffled = shuffle(filtered);
     const rawQuiz = shuffled.slice(0, Math.min(WANT_QUIZ_COUNT, shuffled.length));
     const quizIds = new Set(rawQuiz.map((q) => q.id));
-    const optionPool = filtered.filter((w) => !quizIds.has(w.id));
-    const poolWords = optionPool.map((w) => w.word);
-    const quizItems = rawQuiz.map((item) => {
-      const others = Array.from(
-        new Set([...poolWords, ...rawQuiz.filter((q) => q.id !== item.id).map((q) => q.word)])
-      ).filter((w) => w !== item.word);
-      const wrongs = shuffle(others).slice(0, 2);
-      const options = shuffle([item.word, ...wrongs]);
-      return { ...item, options };
-    });
+    const optionPool = [
+      ...filtered.filter((w) => !quizIds.has(w.id)),
+      ...mappedWords,
+    ];
+    const quizItems = buildQuizItems(rawQuiz, [...optionPool, ...rawQuiz]);
     return { quizItems, optionPool };
   }
-
-  const { data: wordsData, error: wordsError } = await supabase
-    .from("words")
-    .select("id, word, meaning, example")
-    .limit(100);
 
   if (!wordsError && wordsData && wordsData.length > 0) {
     const mapped: QuizWordItem[] = (wordsData as WordsRow[])
@@ -127,15 +151,7 @@ export async function getQuizWordsFromSupabase(
     const rawQuiz = shuffled.slice(0, Math.min(WANT_QUIZ_COUNT, shuffled.length));
     const quizIds = new Set(rawQuiz.map((q) => q.id));
     const optionPool = filtered.filter((w) => !quizIds.has(w.id));
-    const poolWords = optionPool.map((w) => w.word);
-    const quizItems = rawQuiz.map((item) => {
-      const others = Array.from(
-        new Set([...poolWords, ...rawQuiz.filter((q) => q.id !== item.id).map((q) => q.word)])
-      ).filter((w) => w !== item.word);
-      const wrongs = shuffle(others).slice(0, 2);
-      const options = shuffle([item.word, ...wrongs]);
-      return { ...item, options };
-    });
+    const quizItems = buildQuizItems(rawQuiz, [...optionPool, ...rawQuiz]);
     return { quizItems, optionPool };
   }
 

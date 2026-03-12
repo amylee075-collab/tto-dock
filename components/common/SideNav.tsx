@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -8,6 +9,11 @@ import { useSidebar } from "@/contexts/SidebarContext";
 const readingChildren = [
   { href: "/practice/core-word", label: "문해력 기초 훈련" },
   { href: "/reading", label: "문해 학습" },
+] as const;
+
+const mypageChildren = [
+  { href: "/mypage/info", label: "내 정보" },
+  { href: "/mypage/growth-report", label: "나의 성장 리포트" },
 ] as const;
 
 const ORANGE = "#FF5C00";
@@ -153,7 +159,7 @@ export default function SideNav() {
                   : "gap-4 px-4 w-full min-w-0"
               } ${
                 isHomeActive
-                  ? "bg-orange-50 text-[#FF5C00]"
+                  ? "bg-orange-50 text-[#FF5C00] ring-1 ring-orange-100"
                   : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
               }`}
             >
@@ -179,7 +185,7 @@ export default function SideNav() {
                   : "gap-4 px-4 min-w-0"
               } ${
                 isReadingSectionActive
-                  ? "bg-orange-50 text-[#FF5C00]"
+                  ? "bg-orange-50 text-[#FF5C00] ring-1 ring-orange-100"
                   : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
               }`}
               aria-expanded={!collapsed}
@@ -209,7 +215,7 @@ export default function SideNav() {
                             href={href}
                             className={`flex items-center rounded-xl px-3 py-2 text-base font-medium transition-colors ${
                               active
-                                ? "bg-orange-50 text-[#FF5C00]"
+                                ? "bg-orange-50 text-[#FF5C00] ring-1 ring-orange-100"
                                 : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
                             }`}
                           >
@@ -224,25 +230,63 @@ export default function SideNav() {
             )}
           </li>
 
-          <li className={`flex items-center w-full ${collapsed ? "justify-center" : ""}`}>
+          <li className={`w-full ${collapsed ? "flex justify-center" : ""}`}>
             <Link
-              href="/mypage"
+              href="/mypage/info"
               title={collapsed ? "마이페이지" : undefined}
-              className={`flex items-center h-12 rounded-xl text-lg font-semibold transition-colors ${
+              className={`flex items-center h-12 rounded-xl text-lg font-semibold transition-colors w-full ${
                 collapsed
                   ? "justify-center w-10 h-10 rounded-full shrink-0"
-                  : "gap-4 px-4 w-full min-w-0"
+                  : "gap-4 px-4 min-w-0"
               } ${
                 isMyPageActive
-                  ? "bg-orange-50 text-[#FF5C00]"
+                  ? "bg-orange-50 text-[#FF5C00] ring-1 ring-orange-100"
                   : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
               }`}
+              aria-expanded={!collapsed}
             >
               <span className="flex items-center justify-center w-6 h-6 shrink-0 text-xl leading-none" aria-hidden>
                 👤
               </span>
-              {!collapsed && <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden">마이페이지</span>}
+              {!collapsed && (
+                <>
+                  <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden text-left">
+                    마이페이지
+                  </span>
+                  <ChevronIcon className="h-4 w-4 shrink-0 rotate-90" />
+                </>
+              )}
             </Link>
+
+            {!collapsed && (
+              <div className="grid grid-rows-[1fr] opacity-100">
+                <div className="overflow-hidden">
+                  <ul className="mt-1 ml-4 space-y-1 border-l border-orange-100 pl-3">
+                    {mypageChildren.map(({ href, label }) => {
+                      const active =
+                        href === "/mypage/info"
+                          ? pathname.startsWith("/mypage/info") || pathname.startsWith("/mypage/profile")
+                          : pathname.startsWith(href);
+
+                      return (
+                        <li key={href}>
+                          <Link
+                            href={href}
+                            className={`flex items-center rounded-xl px-3 py-2 text-base font-medium transition-colors ${
+                              active
+                                ? "bg-orange-50 text-[#FF5C00] ring-1 ring-orange-100"
+                                : "text-gray-600 hover:bg-orange-50/70 hover:text-[#FF5C00]"
+                            }`}
+                          >
+                            <span className="min-w-0 truncate">{label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            )}
           </li>
         </ul>
         {/* 빈 공간으로 로그인을 LNB 맨 아래로 밀기 */}

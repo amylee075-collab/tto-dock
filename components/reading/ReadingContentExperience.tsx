@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, Fragment } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import type { ReadingContent } from "@/lib/data";
 import { useCPM } from "@/lib/hooks/useCPM";
 import { useActiveSentence } from "@/lib/hooks/useActiveSentence";
 import type { Segment as VocabSegment, VocabItem } from "@/lib/vocabulary-split";
 import ReadingSidebar from "./ReadingSidebar";
 import ReadingNavBar from "./ReadingNavBar";
+import ReadingStartOverlay from "./ReadingStartOverlay";
 import VocabularyTooltip from "./VocabularyTooltip";
 import QuizSection from "./QuizSection";
 import CoachingFeedback from "./CoachingFeedback";
@@ -27,13 +28,19 @@ export default function ReadingContentExperience({
   const [readingStarted, setReadingStarted] = useState(false);
 
   const { activeIndex, setActiveIndex, goNext, goPrev } = useActiveSentence(sentences.length);
-  const { cpm, status, tier, tierLabel, tierMessage, updateCPM } = useCPM(
+  const { cpm, status, tier, tierLabel, tierMessage, readCount, startReading, updateCPM } = useCPM(
     sentences,
     activeIndex,
     true,
     readingStarted,
     content.id
   );
+
+  const handleStartReading = useCallback(() => {
+    setReadingStarted(true);
+    setActiveIndex(0);
+    startReading(0);
+  }, [setActiveIndex, startReading]);
 
   const scrollMainToTop = () => {
     const el = document.getElementById("main-scroll-area");
@@ -57,7 +64,7 @@ export default function ReadingContentExperience({
   }, [activeIndex, readingStarted]);
 
   useEffect(() => {
-    if (!endSentinelRef.current || showQuiz) return;
+    if (!readingStarted || !endSentinelRef.current || showQuiz) return;
     const ob = new IntersectionObserver(
       ([e]) => {
         if (e?.isIntersecting) setShowQuiz(true);
@@ -66,7 +73,7 @@ export default function ReadingContentExperience({
     );
     ob.observe(endSentinelRef.current);
     return () => ob.disconnect();
-  }, [showQuiz]);
+  }, [readingStarted, showQuiz]);
 
   const sentenceSegments = useMemo((): VocabSegment[][] => {
     const vocabList = (vocabulary ?? []) as VocabItem[];
@@ -124,12 +131,14 @@ export default function ReadingContentExperience({
           tierLabel={tierLabel}
           tierMessage={tierMessage}
           cpmStatus={status}
-          readCount={activeIndex + 1}
+          readCount={readCount}
           totalSentences={sentences.length}
+          readingStarted={readingStarted}
           asAccordion
         />
       </div>
       <article className="flex-1 min-w-0 pt-6 pb-4 lg:py-6 order-2 lg:order-1 relative z-10 w-full max-w-3xl lg:max-w-4xl">
+        <ReadingStartOverlay visible={!readingStarted} onStart={handleStartReading} />
         <h1 className="font-reading-title font-extrabold text-2xl md:text-3xl text-[#212529] mb-6">
           {title}
         </h1>
@@ -142,8 +151,8 @@ export default function ReadingContentExperience({
             {sentences.map((sentence, i) => {
               const segments =
                 sentenceSegments[i] ?? [{ type: "text" as const, value: sentence }];
-              const isActive = activeIndex === i;
-              const isRead = i < activeIndex;
+              const isActive = readingStarted && activeIndex === i;
+              const isRead = readingStarted && i < activeIndex;
               return (
                 <Fragment key={i}>
                   {i > 0 && " "}
@@ -151,13 +160,13 @@ export default function ReadingContentExperience({
                     role="button"
                     tabIndex={0}
                     onClick={() => {
-                      setReadingStarted(true);
+                      if (!readingStarted) return;
                       setActiveIndex(i);
                     }}
                     onKeyDown={(e) => {
+                      if (!readingStarted) return;
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setReadingStarted(true);
                         setActiveIndex(i);
                       }
                     }}
@@ -197,17 +206,18 @@ export default function ReadingContentExperience({
         {!showQuiz && (
           <ReadingNavBar
             onPrev={() => {
-              setReadingStarted(true);
+              if (!readingStarted) return;
               updateCPM();
               goPrev();
               updateCPM();
             }}
             onNext={() => {
-              setReadingStarted(true);
+              if (!readingStarted) return;
               updateCPM();
               goNext();
               updateCPM();
             }}
+            locked={!readingStarted}
             hasPrev={activeIndex > 0}
             hasNext={activeIndex < sentences.length - 1}
           />
@@ -241,8 +251,9 @@ export default function ReadingContentExperience({
           tierLabel={tierLabel}
           tierMessage={tierMessage}
           cpmStatus={status}
-          readCount={activeIndex + 1}
+          readCount={readCount}
           totalSentences={sentences.length}
+          readingStarted={readingStarted}
           className="w-full lg:w-64 lg:max-w-[16rem]"
         />
       </div>

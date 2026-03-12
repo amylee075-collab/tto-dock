@@ -1,13 +1,6 @@
 "use client";
 
-/** 접속일 기준 학생(YYMMDD) 형식 반환 */
-function getStudentDisplayName(): string {
-  const d = new Date();
-  const yy = String(d.getFullYear()).slice(-2);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `학생(${yy}${mm}${dd})`;
-}
+import { useSession } from "next-auth/react";
 
 export interface RepresentativeBadge {
   icon: string;
@@ -24,7 +17,9 @@ export default function MypageHeader({
   title,
   representativeBadge,
 }: MypageHeaderProps) {
-  const displayName = getStudentDisplayName();
+  const { data: session } = useSession();
+  const displayName =
+    session?.user?.name?.trim() || session?.user?.email?.trim() || "학습자";
 
   return (
     <header className="flex items-center justify-between gap-4 mb-8">

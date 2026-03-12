@@ -35,6 +35,9 @@ type ContentRow = {
   summary_quiz?: unknown;
 };
 
+export type CategoryContentFilter = "전체" | "과학" | "역사" | "사회" | "예술" | "기술·AI";
+export type CategoryContentSort = "title" | "difficulty";
+
 function toBadgesArray(badges: ContentRow["badges"]): string[] {
   if (badges == null) return [];
   if (Array.isArray(badges)) return badges.filter((b): b is string => typeof b === "string");
@@ -165,7 +168,7 @@ function parseSummaryQuiz(v: unknown): ShortStorySummaryQuiz[] | undefined {
   return items.length > 0 ? items : undefined;
 }
 
-function rowToShortStory(row: ContentRow): ShortStory {
+export function rowToShortStory(row: ContentRow): ShortStory {
   const vocab = row.vocabulary && Array.isArray(row.vocabulary)
     ? row.vocabulary.filter((v) => v && typeof v.word === "string")
     : [];
@@ -188,6 +191,75 @@ function rowToShortStory(row: ContentRow): ShortStory {
     badges,
     difficulty: difficulty ?? undefined,
   };
+}
+
+function hasCategoryFilter(story: ShortStory, filter: Exclude<CategoryContentFilter, "전체">): boolean {
+  if (story.section === filter) return true;
+  if (!Array.isArray(story.badges)) return false;
+  return story.badges.some((badge) => String(badge).trim() === filter);
+}
+
+function getDifficultyRank(value: unknown): number {
+  const normalized = normalizeDifficultyToLevel(value);
+  if (normalized != null) return normalized;
+
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (raw === "하") return 1;
+  if (raw === "중") return 2;
+  if (raw === "상") return 3;
+  return 99;
+}
+
+function sortCategoryStories(stories: ShortStory[], sortBy: CategoryContentSort): ShortStory[] {
+  const copied = [...stories];
+  if (sortBy === "difficulty") {
+    return copied.sort((a, b) => {
+      const rankA = getDifficultyRank(a.difficulty);
+      const rankB = getDifficultyRank(b.difficulty);
+      if (rankA !== rankB) return rankA - rankB;
+      return a.title.localeCompare(b.title, "ko");
+    });
+  }
+
+  return copied.sort((a, b) => a.title.localeCompare(b.title, "ko"));
+}
+
+export async function getCategoryContentsFromSupabase(options?: {
+  filter?: CategoryContentFilter;
+  sortBy?: CategoryContentSort;
+}): Promise<ShortStory[]> {
+  await forceDynamic();
+
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
+  const filter = options?.filter ?? "전체";
+  const sortBy = options?.sortBy ?? "title";
+
+  let query = supabase.from("contents").select("*").eq("type", "category");
+
+  if (sortBy === "title") {
+    query = query.order("title", { ascending: true });
+  } else {
+    // 난이도 컬럼이 문자열/숫자가 혼용될 수 있어 DB 조회 후 안전하게 보정 정렬합니다.
+    query = query.order("updated_at", { ascending: false });
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("[Supabase] getCategoryContentsFromSupabase error", error);
+    return [];
+  }
+  if (!data || !Array.isArray(data)) return [];
+
+  const stories = (data as ContentRow[]).map(rowToShortStory);
+  const filtered =
+    filter === "전체"
+      ? stories
+      : stories.filter((story) => hasCategoryFilter(story, filter));
+
+  return sortCategoryStories(filtered, sortBy);
 }
 
 const CONTENT_TYPES = ["short", "category", "digital", "long"] as const;

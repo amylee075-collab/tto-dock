@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/", label: "홈", icon: "🏠" },
   { href: "/reading", label: "또독 읽기", icon: "📖" },
-  { href: "/mypage", label: "마이페이지", icon: "👤" },
+  { href: "/mypage/info", label: "마이페이지", icon: "👤" },
 ] as const;
 
 /** 바텀 네비 높이(px): 이전/다음 버튼 바 위치 계산용 */
