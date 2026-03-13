@@ -1,14 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import {
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
-} from "recharts";
+import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from "recharts";
 import type { StudyLogRecord } from "@/lib/study-log-types";
 
 interface StudyLogReportModalProps {
@@ -118,28 +111,26 @@ export default function StudyLogReportModal({
           <div className="rounded-3xl border border-gray-100 bg-white p-5">
             <p className="text-sm font-semibold text-[#F97316]">영역별 결과</p>
             {radarData.length > 0 ? (
-              <div className="mt-4 h-[260px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData}>
-                    <PolarGrid stroke="#FDE7D7" />
-                    <PolarAngleAxis
-                      dataKey="subject"
-                      tick={{ fill: "#212529", fontSize: 12, fontWeight: 700 }}
-                    />
-                    <PolarRadiusAxis
-                      angle={90}
-                      domain={[0, 100]}
-                      tick={{ fill: "#9CA3AF", fontSize: 10 }}
-                    />
-                    <Radar
-                      dataKey="value"
-                      stroke="#F97316"
-                      fill="#FDBA74"
-                      fillOpacity={0.35}
-                      strokeWidth={2}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
+              <div className="mt-4 h-[260px] w-full min-w-0 flex items-center justify-center">
+                <RadarChart width={260} height={260} data={radarData}>
+                  <PolarGrid stroke="#FDE7D7" />
+                  <PolarAngleAxis
+                    dataKey="subject"
+                    tick={{ fill: "#212529", fontSize: 12, fontWeight: 700 }}
+                  />
+                  <PolarRadiusAxis
+                    angle={90}
+                    domain={[0, 100]}
+                    tick={{ fill: "#9CA3AF", fontSize: 10 }}
+                  />
+                  <Radar
+                    dataKey="value"
+                    stroke="#F97316"
+                    fill="#FDBA74"
+                    fillOpacity={0.35}
+                    strokeWidth={2}
+                  />
+                </RadarChart>
               </div>
             ) : (
               <div className="mt-4 rounded-2xl bg-gray-50 p-4 text-sm text-gray-500">

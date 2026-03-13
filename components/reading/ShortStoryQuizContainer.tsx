@@ -4,14 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import {
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
-} from "recharts";
+import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from "recharts";
 import type { ShortStory } from "@/lib/data";
 import { getCPMTier } from "@/lib/hooks/useCPM";
 import { buildLearningReportComment } from "@/lib/report-comment-builder";
@@ -544,29 +537,31 @@ export default function ShortStoryQuizContainer({
 
                 <div className="mt-6 flex flex-col gap-6 md:flex-row">
                   <div className="flex-1 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-gray-100">
-                    <div className="h-[320px] w-full sm:h-[360px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart data={reportRadarData}>
-                          <PolarGrid stroke="#FDE7D7" />
-                          <PolarAngleAxis
-                            dataKey="subject"
-                            tick={{ fill: "#212529", fontSize: 13, fontWeight: 700 }}
-                          />
-                          <PolarRadiusAxis
-                            angle={90}
-                            domain={[0, 100]}
-                            tick={{ fill: "#9CA3AF", fontSize: 11 }}
-                          />
-                          <Radar
-                            name="학습 점수"
-                            dataKey="value"
-                            stroke="#F97316"
-                            fill="#FDBA74"
-                            fillOpacity={0.35}
-                            strokeWidth={2}
-                          />
-                        </RadarChart>
-                      </ResponsiveContainer>
+                    <div className="h-[320px] w-full sm:h-[360px] min-w-0 flex items-center justify-center">
+                      <RadarChart
+                        width={320}
+                        height={320}
+                        data={reportRadarData}
+                      >
+                        <PolarGrid stroke="#FDE7D7" />
+                        <PolarAngleAxis
+                          dataKey="subject"
+                          tick={{ fill: "#212529", fontSize: 13, fontWeight: 700 }}
+                        />
+                        <PolarRadiusAxis
+                          angle={90}
+                          domain={[0, 100]}
+                          tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                        />
+                        <Radar
+                          name="학습 점수"
+                          dataKey="value"
+                          stroke="#F97316"
+                          fill="#FDBA74"
+                          fillOpacity={0.35}
+                          strokeWidth={2}
+                        />
+                      </RadarChart>
                     </div>
                   </div>
 

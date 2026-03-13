@@ -1,6 +1,8 @@
+// 파일 인코딩 강제 고정: UTF-8
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { getFeedbackFromStats } from "@/lib/mypage-data";
@@ -12,17 +14,16 @@ import {
 } from "@/lib/study-log-types";
 import { getCPMTier } from "@/lib/hooks/useCPM";
 import { STUDY_LOGS_UPDATED_EVENT, useUserStatus } from "@/hooks/useUserStatus";
+import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from "recharts";
 import WeeklyBarChart from "@/components/mypage/WeeklyBarChart";
 import SpeedAreaChart from "@/components/mypage/SpeedAreaChart";
 
 function getDisplayName(name?: string | null, email?: string | null): string {
   const trimmedName = name?.trim();
   if (trimmedName) return trimmedName;
-
   const trimmedEmail = email?.trim();
   if (trimmedEmail) return trimmedEmail;
-
-  return "학습자";
+  return "사용자";
 }
 
 function buildLearnerOneLineAnalysis(
@@ -32,18 +33,18 @@ function buildLearnerOneLineAnalysis(
 ): string {
   const { tier } = getCPMTier(averageWpm);
   const accuracyLabel =
-    accuracy >= 80 ? "이해를 잘 잡는" : accuracy >= 60 ? "꾸준히 성장하는" : "차근차근 다져가는";
+    accuracy >= 80 ? "내용을 잘 파악하고" : accuracy >= 60 ? "이해도가 안정적이며" : "꼼꼼히 읽으려 노력하며";
 
+  if (tier === "초고속") {
+    return `${displayName}님은 아주 빠른 흐름을 유지하면서 ${accuracyLabel} 읽고 있어요.`;
+  }
   if (tier === "안정적") {
-    return `${displayName}님은 안정적으로 읽으며 ${accuracyLabel} 학습자예요.`;
+    return `${displayName}님은 이상적인 속도로 글을 읽으며 ${accuracyLabel} 있어요.`;
   }
-  if (tier === "차근차근") {
-    return `${displayName}님은 꼼꼼하게 읽으며 ${accuracyLabel} 학습자예요.`;
+  if (tier === "느림") {
+    return `${displayName}님은 아주 꼼꼼하게 한 문장씩 ${accuracyLabel} 학습해요.`;
   }
-  if (tier === "빠름") {
-    return `${displayName}님은 빠른 흐름을 유지하며 ${accuracyLabel} 학습자예요.`;
-  }
-  return `${displayName}님은 집중력 있게 읽으며 ${accuracyLabel} 학습자예요.`;
+  return `${displayName}님은 나만의 읽기 리듬을 찾으며 ${accuracyLabel} 있어요.`;
 }
 
 function buildBalanceInsight(averageWpm: number, accuracy: number): {
@@ -54,26 +55,26 @@ function buildBalanceInsight(averageWpm: number, accuracy: number): {
 
   if (accuracy >= 80 && tier === "안정적") {
     return {
-      title: "균형형",
-      description: "속도와 이해의 균형이 좋아서 꾸준히 성장하기 좋은 리듬이에요.",
+      title: "완벽 균형",
+      description: "읽기 속도와 이해도의 균형이 아주 훌륭한 상태입니다.",
     };
   }
-  if (accuracy >= 80 && tier === "차근차근") {
+  if (accuracy >= 80 && tier === "초고속") {
     return {
-      title: "꼼꼼형",
-      description: "천천히 읽더라도 중요한 내용을 단단하게 붙잡는 힘이 보여요.",
+      title: "쾌속 정독",
+      description: "빠른 속도로 글을 읽으면서도 핵심을 놓치지 않고 있어요.",
     };
   }
   if (accuracy < 60 && (tier === "빠름" || tier === "매우 빠름")) {
     return {
-      title: "속도 조절형",
-      description: "읽기 흐름은 좋아요. 핵심 문장을 한 번 더 떠올리면 균형이 더 좋아질 수 있어요.",
+      title: "속도 조절 필요",
+      description: "조금만 천천히 읽어볼까요? 내용을 더 잘 파악할 수 있을 거예요.",
     };
   }
 
   return {
-    title: "성장형",
-    description: "읽기 습관이 쌓이는 중이에요. 지금의 흐름을 이어 가면 더 또렷한 균형이 만들어질 수 있어요.",
+    title: "성장 중",
+    description: "나만의 리듬을 찾아가는 중이에요. 꾸준히 읽는 것이 가장 중요해요.",
   };
 }
 
@@ -84,18 +85,18 @@ function buildMission(stats: {
   totalSentencesRead: number;
 }): string {
   if (stats.streakDays < 3) {
-    return "이번 주에는 3일 연속으로 문해 학습을 이어가 보세요.";
+    return "이번 주 3일 연속 출석 미션에 도전해 보세요!";
   }
   if (stats.todayAccuracy < 80) {
-    return "다음 학습에서 퀴즈 정답률 80% 이상에 도전해 보세요.";
+    return "다음 퀴즈에서는 정답률 80% 이상을 목표로 해볼까요?";
   }
   if (stats.averageWpm > 700) {
-    return "빠른 흐름을 유지하되 핵심 문장을 한 번 더 떠올리며 읽어 보세요.";
+    return "조금만 속도를 늦춰서 문장 사이의 숨은 뜻을 찾아보세요.";
   }
   if (stats.totalSentencesRead < 100) {
-    return "이번 주에 누적 100문장 읽기에 도전해 보세요.";
+    return "누적 읽은 문장 100개 돌파 미션까지 얼마 안 남았어요!";
   }
-  return "문해 활동 한 편을 더 읽고 스스로의 생각까지 정리해 보세요.";
+  return "매일 10분씩, 나만의 사고력 노트를 채워보는 건 어떨까요?";
 }
 
 function GrowthSectionCard({
@@ -103,24 +104,31 @@ function GrowthSectionCard({
   subtitle,
   children,
 }: {
-  title: string;
+  title?: string;
   subtitle?: string;
   children: React.ReactNode;
 }) {
+  const hasHeader = Boolean(title || subtitle);
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 md:p-8">
-      <div>
-        <p className="text-[15px] font-semibold text-[#F97316]">{title}</p>
-        {subtitle ? <h3 className="mt-1 text-xl font-extrabold text-[#212529]">{subtitle}</h3> : null}
-      </div>
-      <div className="mt-5">{children}</div>
+    <section className="py-2 md:py-3">
+      {hasHeader && (
+        <div className="mb-3 md:mb-4">
+          {title ? (
+            <p className="text-base font-semibold text-[#F97316]">{title}</p>
+          ) : null}
+          {subtitle ? (
+            <h3 className="mt-1 text-xl font-extrabold text-[#212529]">{subtitle}</h3>
+          ) : null}
+        </div>
+      )}
+      <div>{children}</div>
     </section>
   );
 }
 
 function GrowthSkeletonCard({ blocks = 3 }: { blocks?: number }) {
   return (
-    <GrowthSectionCard title="분석 데이터를 불러오는 중입니다..." subtitle="나의 성장 리포트">
+    <GrowthSectionCard title="리포트 데이터를 분석하고 있어요..." subtitle="잠시만 기다려주세요">
       <div className="animate-pulse space-y-3">
         {Array.from({ length: blocks }).map((_, index) => (
           <div key={index} className="h-20 rounded-2xl bg-gray-100" />
@@ -137,6 +145,7 @@ export default function GrowthReportDashboard() {
   const [readingLogs, setReadingLogs] = useState<StudyLogRecord<"reading_session">[]>([]);
   const [loading, setLoading] = useState(true);
   const emptyRetryRef = useRef(false);
+  const [profileNickname, setProfileNickname] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -162,10 +171,33 @@ export default function GrowthReportDashboard() {
       emptyRetryRef.current = false;
       return;
     }
-
     emptyRetryRef.current = false;
     void refresh();
   }, [isAuthenticated, loadStudyLogs]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setProfileNickname(null);
+      return;
+    }
+    let alive = true;
+    const loadProfileNickname = async () => {
+      try {
+        const res = await fetch("/api/mypage/profile", { cache: "no-store" });
+        const json = (await res.json()) as { profile?: { nickname?: string | null } };
+        if (!alive) return;
+        const next = json.profile?.nickname?.trim();
+        setProfileNickname(next && next.length > 0 ? next : null);
+      } catch {
+        if (!alive) return;
+        setProfileNickname(null);
+      }
+    };
+    void loadProfileNickname();
+    return () => {
+      alive = false;
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const onStudyLogsUpdated = () => void refresh();
@@ -187,18 +219,8 @@ export default function GrowthReportDashboard() {
     };
   }, [isAuthenticated]);
 
-  useEffect(() => {
-    if (!isAuthenticated || loading || readingLogs.length > 0 || emptyRetryRef.current) return;
-
-    emptyRetryRef.current = true;
-    const timer = window.setTimeout(() => {
-      void refresh();
-    }, 900);
-
-    return () => window.clearTimeout(timer);
-  }, [isAuthenticated, loading, readingLogs.length]);
-
-  const displayName = getDisplayName(session?.user?.name, session?.user?.email);
+  const displayName =
+    profileNickname?.trim() || getDisplayName(session?.user?.name, session?.user?.email);
   const feedback = useMemo(() => getFeedbackFromStats(stats), [stats]);
   const hasGrowthData = stats?.hasAnyData || readingLogs.length > 0;
   const last7Keys = useMemo(() => getLast7KstDateKeys(), []);
@@ -206,6 +228,7 @@ export default function GrowthReportDashboard() {
     () => buildLearnerOneLineAnalysis(displayName, stats?.averageWpm ?? 0, stats?.todayAccuracy ?? 0),
     [displayName, stats?.averageWpm, stats?.todayAccuracy]
   );
+
   const habitCards = useMemo(() => {
     const speedTier = getCPMTier(stats?.averageWpm ?? 0).tier;
     const balanceInsight = buildBalanceInsight(stats?.averageWpm ?? 0, stats?.todayAccuracy ?? 0);
@@ -215,38 +238,43 @@ export default function GrowthReportDashboard() {
         title: "읽기 리듬",
         value: speedTier,
         description:
-          speedTier === "안정적"
-            ? "속도와 집중의 흐름이 안정적으로 이어지고 있어요."
-            : speedTier === "차근차근"
-              ? "차분하게 읽으며 내용을 붙잡는 힘이 좋아요."
-              : speedTier === "빠름"
-                ? "읽기 흐름이 좋아요. 핵심 문장에 한 번 더 집중하면 더 좋아질 수 있어요."
-                : "집중력은 좋아요. 핵심 내용을 한 번 더 확인하면 균형이 더 좋아질 수 있어요.",
+          speedTier === "초고속"
+            ? "아주 빠른 흐름으로 글을 읽고 있습니다."
+            : speedTier === "안정적"
+              ? "글을 이해하기에 아주 적절한 속도입니다."
+              : speedTier === "느림"
+                ? "꼼꼼하게 한 줄씩 정성 들여 읽고 있습니다."
+                : "나만의 읽기 속도를 차근차근 만들어가고 있어요.",
       },
       {
         title: "이해도",
         value:
           (stats?.todayAccuracy ?? 0) >= 80
-            ? "또렷함"
+            ? "훌륭함"
             : (stats?.todayAccuracy ?? 0) >= 60
-              ? "안정 성장"
-              : "차근차근",
+              ? "안정적"
+              : "노력 중",
         description:
           (stats?.todayAccuracy ?? 0) >= 80
-            ? "문제를 풀 때 글의 핵심을 비교적 정확하게 잡아내고 있어요."
+            ? "글의 중심 내용을 아주 정확하게 파악하고 있어요."
             : (stats?.todayAccuracy ?? 0) >= 60
-              ? "전체 흐름을 따라가며 이해력을 차근차근 쌓고 있어요."
-              : "핵심 문장을 다시 떠올리면 이해도가 더 좋아질 수 있어요.",
+              ? "글의 핵심을 이해하며 차분히 학습하고 있습니다."
+              : "문장 사이의 뜻을 더 깊이 생각하며 읽어볼까요?",
       },
       {
-        title: "읽기 균형 해석",
+        title: "읽기 습관 균형",
         value: balanceInsight.title,
         description: balanceInsight.description,
       },
     ];
   }, [stats?.averageWpm, stats?.todayAccuracy]);
+
+  const rhythmCard = habitCards[0];
+  const balanceCard = habitCards[2];
+
   const weeklyData = stats?.weeklySentencesByDay ?? EMPTY_DASHBOARD_STATS.weeklySentencesByDay;
   const speedChartData = stats?.weeklyWpmByDay ?? EMPTY_DASHBOARD_STATS.weeklyWpmByDay;
+
   const activitySummaryCards = useMemo(() => {
     const last7Logs = readingLogs.filter((log) => last7Keys.includes(log.kstDate));
     const totalSentences = last7Logs.reduce((sum, log) => sum + Number(log?.payload?.sentencesRead ?? 0), 0);
@@ -258,7 +286,7 @@ export default function GrowthReportDashboard() {
     const learningDays = new Set(last7Logs.map((log) => log.kstDate)).size;
 
     return [
-      { label: "학습일", value: `${learningDays}일` },
+      { label: "학습 일수", value: `${learningDays}일` },
       { label: "읽은 문장", value: `${totalSentences}문장` },
       {
         label: "평균 속도",
@@ -270,7 +298,28 @@ export default function GrowthReportDashboard() {
       },
     ];
   }, [last7Keys, readingLogs]);
-  const thinkingNotes = useMemo(() => stats?.thinkingNotes?.slice(0, 5) ?? [], [stats?.thinkingNotes]);
+
+  const cumulativeRadarData = useMemo(() => {
+    const logsWithRadar = readingLogs.filter((log) => Boolean(log?.payload?.radarScores));
+    if (logsWithRadar.length === 0) return [];
+
+    const sum = { vocabulary: 0, understanding: 0, thinking: 0, expression: 0 };
+    for (const log of logsWithRadar) {
+      const r = log.payload.radarScores!;
+      sum.vocabulary += Number(r.vocabulary ?? 0);
+      sum.understanding += Number(r.understanding ?? 0);
+      sum.thinking += Number(r.thinking ?? 0);
+      sum.expression += Number(r.expression ?? 0);
+    }
+    const n = logsWithRadar.length;
+    return [
+      { subject: "어휘력", value: Math.round(sum.vocabulary / n), fullMark: 100 },
+      { subject: "이해력", value: Math.round(sum.understanding / n), fullMark: 100 },
+      { subject: "사고력", value: Math.round(sum.thinking / n), fullMark: 100 },
+      { subject: "표현력", value: Math.round(sum.expression / n), fullMark: 100 },
+    ];
+  }, [readingLogs]);
+
   const coachingCards = useMemo(
     () => [
       {
@@ -278,14 +327,14 @@ export default function GrowthReportDashboard() {
         items:
           feedback?.goodItems?.length > 0
             ? feedback.goodItems
-            : ["아직 기록이 없어요."],
+            : ["꾸준히 학습을 이어가고 있어요."],
       },
       {
-        title: "보완할 점",
+        title: "보완하면 좋은 점",
         items:
           feedback?.improveItems?.length > 0
             ? feedback.improveItems
-            : ["아직 기록이 없어요."],
+            : ["문장별 핵심어 찾기를 연습해 봐요."],
       },
       {
         title: "다음 학습 미션",
@@ -303,37 +352,18 @@ export default function GrowthReportDashboard() {
     return (
       <div className="py-8 font-pretendard">
         <section className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
-          <h2 className="mb-3 text-xl font-extrabold text-[#212529]">로그인이 필요한 서비스입니다</h2>
-          <p className="mb-6 text-sm leading-6 text-gray-500">
-            나의 성장 리포트는 로그인한 계정의 학습 기록을 바탕으로 보여줘요.
+          <h2 className="mb-3 text-xl font-extrabold text-[#212529]">로그인이 필요합니다</h2>
+          <p className="mb-6 text-base leading-6 text-gray-500">
+            나의 성장 리포트를 확인하려면 먼저 로그인을 해주세요.
           </p>
           <button
             type="button"
             onClick={() => signIn()}
-            className="inline-flex items-center justify-center rounded-xl bg-[#FF5C00] px-5 py-3 text-sm font-bold text-white hover:opacity-90"
+            className="inline-flex items-center justify-center rounded-xl bg-[#FF5C00] px-5 py-3 text-base font-bold text-white hover:opacity-90"
           >
             로그인하기
           </button>
         </section>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="py-8 font-pretendard">
-        <div className="space-y-8">
-          <header className="animate-pulse">
-            <div className="h-5 w-28 rounded bg-gray-100" />
-            <div className="mt-3 h-9 w-48 rounded bg-gray-100" />
-          </header>
-          <GrowthSkeletonCard blocks={2} />
-          <GrowthSkeletonCard blocks={3} />
-          <GrowthSkeletonCard blocks={4} />
-          <GrowthSkeletonCard blocks={2} />
-          <GrowthSkeletonCard blocks={3} />
-          <GrowthSkeletonCard blocks={3} />
-        </div>
       </div>
     );
   }
@@ -345,68 +375,99 @@ export default function GrowthReportDashboard() {
           <h1 className="text-3xl font-extrabold tracking-tight text-[#212529]">나의 성장 리포트</h1>
         </header>
 
-        {!hasGrowthData && (
-          <section className="rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-gray-100 md:p-8">
-            <p className="text-lg font-bold text-[#212529]">또독과 함께 첫 읽기를 시작해 보세요!</p>
-            <p className="mt-2 text-[15px] font-medium leading-7 text-gray-500">
-              학습 기록이 쌓이면 성장 리포트가 이곳에 표시돼요.
-            </p>
-            <div className="mt-6">
-              <Link
-                href="/reading"
-                className="inline-flex items-center justify-center rounded-full bg-[#F97316] px-5 py-3 text-[15px] font-bold text-white transition-opacity hover:opacity-90"
-              >
-                학습하러 가기
-              </Link>
+        {/* 종합 코칭: 읽기 습관 / 뱃지 / 한 줄 분석 */}
+        <GrowthSectionCard title="분석 결과">
+          <div className="space-y-4">
+            <div className="rounded-2xl bg-[#FFF7ED] p-5 md:p-6 flex items-start gap-4">
+              <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm shrink-0">
+                <Image
+                  src="/images/character_wink.jpg"
+                  alt="또독이 코치"
+                  width={56}
+                  height={56}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-[#FB923C] uppercase tracking-wide">
+                  이번 주 읽기 분석
+                </p>
+                <p className="mt-1 text-lg font-extrabold text-[#212529]">
+                  {learnerAnalysis}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {rhythmCard?.value && (
+                    <span className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[#F97316] shadow-[0_0_0_1px_rgba(248,148,72,0.15)]">
+                      읽기 리듬: {rhythmCard.value}
+                    </span>
+                  )}
+                  {balanceCard?.value && (
+                    <span className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[#6366F1] shadow-[0_0_0_1px_rgba(129,140,248,0.15)]">
+                      습관 균형 상태: {balanceCard.value}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-          </section>
-        )}
 
-        <GrowthSectionCard title="프로필" subtitle="학습자 한 줄 분석">
-          {hasGrowthData ? (
-            <div className="rounded-2xl bg-gray-50 p-5">
-              <p className="text-[15px] font-semibold text-gray-500">프로필 요약</p>
-              <p className="mt-2 text-lg font-bold text-[#212529]">{learnerAnalysis}</p>
-            </div>
-          ) : (
-            <p className="text-[15px] font-medium text-gray-500">아직 기록이 없어요.</p>
-          )}
-        </GrowthSectionCard>
-
-        <GrowthSectionCard title="습관 카드" subtitle="읽기 리듬과 이해도">
-          {hasGrowthData ? (
             <div className="grid gap-4 md:grid-cols-3">
-              {habitCards.map((card) => (
-                <div key={card.title} className="rounded-2xl bg-gray-50 p-5">
-                  <p className="text-sm font-semibold text-[#F97316]">{card.title}</p>
-                  <p className="mt-3 text-xl font-extrabold text-[#212529]">{card.value}</p>
-                  <p className="mt-3 text-sm leading-6 text-gray-600">{card.description}</p>
-                </div>
-              ))}
+              {habitCards.map((card, index) => {
+                const isRhythm = card.title === "읽기 리듬";
+                const isComprehension = card.title === "이해도";
+                const bgClass = isRhythm
+                  ? "bg-[#FFF7ED]"
+                  : isComprehension
+                    ? "bg-[#EFF6FF]"
+                    : "bg-[#F5F3FF]";
+                const badgeColor =
+                  isRhythm && (card.value === "느림" || card.value === "보통")
+                    ? "bg-[#FEF3C7] text-[#EA580C]"
+                    : card.value === "안정적" || card.value === "훌륭함" || card.value === "완벽 균형"
+                      ? "bg-[#DCFCE7] text-[#15803D]"
+                      : card.title === "읽기 습관 균형"
+                        ? "bg-[#EDE9FE] text-[#6D28D9]"
+                        : "bg-[#DBEAFE] text-[#1D4ED8]";
+
+                return (
+                  <div
+                    key={`${card.title}-${index}`}
+                    className={`rounded-2xl p-5 flex flex-col gap-3 ${bgClass}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-[#F97316] shadow-sm">
+                          {isRhythm ? "🌊" : isComprehension ? "💡" : "⚖️"}
+                        </span>
+                        <p className="text-base font-semibold text-[#4B5563]">{card.title}</p>
+                      </div>
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${badgeColor}`}
+                      >
+                        {card.value}
+                      </span>
+                    </div>
+                    <p className="text-base leading-6 text-[#374151]">
+                      {card.description}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
-          ) : (
-            <p className="text-[15px] font-medium text-gray-500">아직 기록이 없어요.</p>
-          )}
+          </div>
         </GrowthSectionCard>
 
-        <GrowthSectionCard title="활동 요약" subtitle="최근 7일 누적 수치">
+        {/* 7일 학습 통계 차트 */}
+        <GrowthSectionCard title="나의 문해력 성장 곡선">
           {hasGrowthData ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {activitySummaryCards.map((card) => (
-                <div key={card.label} className="rounded-2xl bg-gray-50 p-4">
-                  <p className="text-sm font-medium text-gray-500">{card.label}</p>
-                  <p className="mt-2 text-2xl font-extrabold text-[#212529]">{card.value}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[15px] font-medium text-gray-500">아직 기록이 없어요.</p>
-          )}
-        </GrowthSectionCard>
-
-        <GrowthSectionCard title="성장 곡선" subtitle="주간 학습량과 속도 변화">
-          {hasGrowthData ? (
-            <div className="space-y-6">
+            <div className="space-y-5">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF2FF] text-[#4F46E5]">
+                  📈
+                </span>
+                <p className="text-base font-medium text-gray-700">
+                  매일 조금씩 성장하는 리듬을 한눈에 볼 수 있습니다.
+                </p>
+              </div>
               <WeeklyBarChart
                 key={weeklyData.join(",")}
                 data={weeklyData}
@@ -418,48 +479,98 @@ export default function GrowthReportDashboard() {
               />
             </div>
           ) : (
-            <p className="text-[15px] font-medium text-gray-500">아직 기록이 없어요.</p>
+            <p className="text-base font-medium text-gray-500">아직 누적된 성장 기록이 없습니다.</p>
           )}
         </GrowthSectionCard>
 
-        <GrowthSectionCard title="사고력 노트" subtitle="최근 생각 기록">
-          {hasGrowthData && thinkingNotes.length > 0 ? (
-            <div className="space-y-3">
-              {thinkingNotes.map((note, index) => (
-                <article key={`${note?.kstDate ?? "note"}-${index}`} className="rounded-2xl bg-gray-50 p-4">
-                  <p className="text-sm font-semibold text-[#F97316]">{note?.question ?? "질문이 없어요."}</p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#212529]">
-                    {note?.userAnswer ?? "작성한 답안이 없어요."}
-                  </p>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[15px] font-medium text-gray-500">아직 기록이 없어요.</p>
-          )}
-        </GrowthSectionCard>
-
-        <GrowthSectionCard title="학습 코칭" subtitle="다음 학습 방향 제안">
+        {/* 활동 요약 수치 */}
+        <GrowthSectionCard title="활동 요약">
           {hasGrowthData ? (
-            <div className="grid gap-4 lg:grid-cols-3">
-              {coachingCards.map((card) => (
-                <div key={card.title} className="rounded-2xl bg-gray-50 p-5">
-                  <p className="text-base font-bold text-[#212529]">{card.title}</p>
-                  <ul className="mt-3 space-y-2">
-                    {card.items.map((item, index) => (
-                      <li key={`${card.title}-${index}`} className="flex gap-2 text-sm leading-7 text-gray-700">
-                        <span className="mt-2 inline-block h-2 w-2 shrink-0 rounded-full bg-[#F97316]" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {activitySummaryCards.map((card, index) => (
+                <div
+                  key={`${card.label}-${index}`}
+                  className="rounded-2xl p-4 flex flex-col gap-2 bg-[#F9FAFB]"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#F97316] shadow-sm">
+                      {card.label === "학습 일수" ? "📅" : card.label === "읽은 문장" ? "📖" : "⚡"}
+                    </span>
+                    <p className="text-base font-medium text-gray-600">{card.label}</p>
+                  </div>
+                  <p className="text-2xl font-extrabold text-[#111827]">{card.value}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-[15px] font-medium text-gray-500">아직 기록이 없어요.</p>
+            <p className="text-base font-medium text-gray-500">활동 기록을 불러올 수 없습니다.</p>
           )}
         </GrowthSectionCard>
+
+        {/* 문해 성장 프로필 + 학습 코칭 */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <GrowthSectionCard title="문해 성장 프로필">
+            {hasGrowthData && cumulativeRadarData.length > 0 ? (
+              <div className="rounded-2xl bg-[#F5F3FF] p-4">
+                <div className="h-[260px] w-full min-w-0 flex items-center justify-center">
+                  <RadarChart width={260} height={260} data={cumulativeRadarData}>
+                    <PolarGrid stroke="#FDE7D7" />
+                    <PolarAngleAxis
+                      dataKey="subject"
+                      tick={{ fill: "#212529", fontSize: 12, fontWeight: 700 }}
+                    />
+                    <PolarRadiusAxis
+                      angle={90}
+                      domain={[0, 100]}
+                      tick={{ fill: "#9CA3AF", fontSize: 10 }}
+                    />
+                    <Radar
+                      dataKey="value"
+                      stroke="#F97316"
+                      fill="#FDBA74"
+                      fillOpacity={0.35}
+                      strokeWidth={2}
+                    />
+                  </RadarChart>
+                </div>
+              </div>
+            ) : (
+              <p className="text-base font-medium text-gray-500">
+                문해 영역별 분석 결과가 없습니다. 첫 글을 읽고 결과를 확인해 보세요.
+              </p>
+            )}
+          </GrowthSectionCard>
+
+          <GrowthSectionCard title="학습 코칭">
+            {hasGrowthData ? (
+              <div className="grid gap-4">
+                {coachingCards.map((card, index) => (
+                  <div key={`${card.title}-${index}`} className="rounded-2xl bg-[#F9FAFB] p-5">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#F97316] shadow-sm">
+                        {card.title === "잘하고 있는 점" ? "✨" : "🛠️"}
+                      </span>
+                      <p className="text-base font-bold text-[#212529]">{card.title}</p>
+                    </div>
+                    <ul className="mt-3 space-y-2">
+                      {card.items.map((item, itemIndex) => (
+                        <li
+                          key={`${card.title}-${itemIndex}`}
+                          className="flex gap-2 text-base leading-7 text-gray-700"
+                        >
+                          <span className="mt-2 inline-block h-2 w-2 shrink-0 rounded-full bg-[#F97316]" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-base font-medium text-gray-500">학습 코칭 데이터가 없습니다.</p>
+            )}
+          </GrowthSectionCard>
+        </div>
       </div>
     </div>
   );

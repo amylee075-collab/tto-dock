@@ -109,7 +109,7 @@ export default function ShortStoryReading({
   const [readingStarted, setReadingStarted] = useState(false);
 
   const { activeIndex, setActiveIndex, goNext, goPrev } = useActiveSentence(sentences.length);
-  const { cpm, status, tier, tierLabel, tierMessage, readCount, startReading, updateCPM } = useCPM(
+  const { cpm, status, tier, tierLabel, tierMessage, readCount, startReading, updateCPM, getFinalCpm, slowStartHint } = useCPM(
     sentences,
     activeIndex,
     step === "READING",
@@ -157,7 +157,8 @@ export default function ShortStoryReading({
   }, [activeIndex, readingStarted, step]);
 
   const goQuizIntro = () => {
-    setResultCpm(cpm);
+    updateCPM();
+    setResultCpm(getFinalCpm());
     setStep("QUIZ_INTRO");
   };
 
@@ -231,6 +232,7 @@ export default function ShortStoryReading({
                 readCount={readCount}
                 totalSentences={sentences.length}
                 readingStarted={readingStarted}
+                slowStartHint={slowStartHint}
                 asAccordion
               />
             </div>
@@ -299,7 +301,7 @@ export default function ShortStoryReading({
                   }}
                   onNext={
                     isOnLastSentence
-                      ? (onGoQuiz ? () => onGoQuiz(cpm) : goQuizIntro)
+                      ? (onGoQuiz ? () => { updateCPM(); onGoQuiz(getFinalCpm()); } : goQuizIntro)
                       : () => {
                           if (!readingStarted) return;
                           updateCPM();
@@ -325,6 +327,7 @@ export default function ShortStoryReading({
                 readCount={readCount}
                 totalSentences={sentences.length}
                 readingStarted={readingStarted}
+                slowStartHint={slowStartHint}
                 className="w-full lg:w-64 lg:max-w-[16rem]"
               />
             </div>

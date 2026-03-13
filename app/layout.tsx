@@ -22,6 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <meta charSet="utf-8" />
+        <title>또박또박 읽기, 또독!</title>
+      </head>
       <body className="h-screen antialiased font-pretendard bg-white overflow-hidden">
         <SessionProvider>
           <SidebarProvider>

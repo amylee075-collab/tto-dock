@@ -95,6 +95,33 @@ export default function SideNav() {
     pathname.startsWith("/reading") || pathname.startsWith("/practice/core-word");
   const isMyPageActive = pathname.startsWith("/mypage");
 
+  const [profileNickname, setProfileNickname] = useState<string | null>(null);
+
+  // LNB 하단 표시 이름: user_profiles.nickname을 우선 사용
+  useEffect(() => {
+    if (status !== "authenticated") {
+      setProfileNickname(null);
+      return;
+    }
+    let alive = true;
+    const loadProfileNickname = async () => {
+      try {
+        const res = await fetch("/api/mypage/profile", { cache: "no-store" });
+        const json = (await res.json()) as { profile?: { nickname?: string | null } };
+        if (!alive) return;
+        const next = json.profile?.nickname?.trim();
+        setProfileNickname(next && next.length > 0 ? next : null);
+      } catch {
+        if (!alive) return;
+        setProfileNickname(null);
+      }
+    };
+    void loadProfileNickname();
+    return () => {
+      alive = false;
+    };
+  }, [status]);
+
   return (
     <aside
       className={`hidden md:flex md:flex-col md:items-center md:justify-start md:h-full md:fixed md:inset-y-0 md:left-0 md:shrink-0 md:border-r md:border-gray-100 md:bg-white md:z-30 transition-[width] duration-300 ease-in-out ${
@@ -316,7 +343,10 @@ export default function SideNav() {
                     className="flex-1 min-w-0 truncate text-sm text-[#212529]"
                     title={session.user?.email ?? undefined}
                   >
-                    {truncateDisplayName(session.user?.name || session.user?.email || "회원")}님
+                    {truncateDisplayName(
+                      profileNickname || session.user?.name || session.user?.email || "회원"
+                    )}
+                    님
                   </span>
                   <button
                     type="button"

@@ -6,7 +6,8 @@ import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
 
 const ORANGE = "#ff5700";
-const NICKNAME_PATTERN = /^[A-Za-z0-9가-힣]+$/;
+/** 공백 제외 1~10자 (문자 종류는 서버에서 한 번 더 검증) */
+const NICKNAME_PATTERN = /^[^\s]{1,10}$/;
 
 interface ProfileResponse {
   profile: {
@@ -25,6 +26,25 @@ interface ProfileFormValues {
 }
 
 type NicknameStatus = "idle" | "checking" | "available" | "duplicate" | "invalid";
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+      />
+    </svg>
+  );
+}
 
 export default function ProfileEditForm() {
   const { data: session } = useSession();
@@ -119,21 +139,23 @@ export default function ProfileEditForm() {
     };
   }, [reset, session?.user?.email, session?.user?.name]);
 
+  /** 검사용: 공백 제거 후 1~10자 */
+  const normalizedNickname = (nicknameValue ?? "").replace(/\s/g, "").trim();
+
   useEffect(() => {
     if (!profileMeta) return;
 
-    const nickname = nicknameValue?.trim() ?? "";
-    if (!nickname) {
+    if (!normalizedNickname) {
       setNicknameStatus("idle");
       return;
     }
 
-    if (!NICKNAME_PATTERN.test(nickname)) {
+    if (normalizedNickname.length === 0 || normalizedNickname.length > 10) {
       setNicknameStatus("invalid");
       return;
     }
 
-    if (nickname === initialValues.nickname) {
+    if (normalizedNickname === initialValues.nickname.replace(/\s/g, "").trim()) {
       setNicknameStatus("available");
       return;
     }
@@ -143,7 +165,7 @@ export default function ProfileEditForm() {
 
     const timer = window.setTimeout(async () => {
       try {
-        const res = await fetch(`/api/mypage/profile?nickname=${encodeURIComponent(nickname)}`, {
+        const res = await fetch(`/api/mypage/profile?nickname=${encodeURIComponent(normalizedNickname)}`, {
           signal: controller.signal,
           cache: "no-store",
         });
@@ -163,50 +185,46 @@ export default function ProfileEditForm() {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [initialValues.nickname, nicknameValue, profileMeta]);
+  }, [initialValues.nickname, normalizedNickname, profileMeta]);
 
   const nicknameMessage = useMemo(() => {
     switch (nicknameStatus) {
       case "checking":
         return { text: "별명 중복 여부를 확인하고 있어요.", color: "text-gray-500" };
       case "available":
-        return nicknameValue?.trim()
+        return normalizedNickname
           ? { text: "사용 가능한 별명이에요.", color: "text-emerald-600" }
           : null;
       case "duplicate":
         return { text: "이미 사용 중인 별명이에요.", color: "text-[#ff5700]" };
       case "invalid":
-        return { text: "별명은 한글, 영어, 숫자만 사용할 수 있어요.", color: "text-[#ff5700]" };
+        return { text: "별명은 한글, 영어, 숫자만 1~10자로 입력해 주세요.", color: "text-[#ff5700]" };
       default:
         return null;
     }
-  }, [nicknameStatus, nicknameValue]);
+  }, [nicknameStatus, normalizedNickname]);
 
   const confirmMessage = useMemo(() => {
     if (!profileMeta?.canChangePassword || (!passwordValue && !confirmPasswordValue)) {
       return null;
     }
-
     if (!confirmPasswordValue) {
       return { text: "비밀번호 확인을 입력해 주세요.", color: "text-gray-500" };
     }
-
     if (passwordsMatch) {
       return { text: "비밀번호가 일치해요.", color: "text-emerald-600" };
     }
-
     return { text: "비밀번호가 일치하지 않아요.", color: "text-[#ff5700]" };
   }, [confirmPasswordValue, passwordValue, passwordsMatch, profileMeta?.canChangePassword]);
 
   const submitEnabled =
     isDirty &&
     isValid &&
-    nicknameStatus === "available" &&
     passwordsMatch &&
     !submitting &&
-    !loading;
-  const currentNickname = nicknameValue?.trim() || profileMeta?.nickname || session?.user?.name || "학습자";
-  const providerLabel = profileMeta?.provider === "google" ? "구글 소셜 로그인" : "이메일 로그인";
+    !loading &&
+    nicknameStatus !== "duplicate" &&
+    nicknameStatus !== "invalid";
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitting(true);
@@ -214,11 +232,12 @@ export default function ProfileEditForm() {
     setSaveMessage("");
 
     try {
+      const nicknameToSave = (values.nickname ?? "").replace(/\s/g, "").trim();
       const res = await fetch("/api/mypage/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nickname: values.nickname.trim(),
+          nickname: nicknameToSave,
           password: values.password,
         }),
       });
@@ -246,142 +265,87 @@ export default function ProfileEditForm() {
 
   if (loading) {
     return (
-      <div className="py-8 font-pretendard">
-        <div className="space-y-8">
-          <div className="animate-pulse rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 md:p-8">
-            <div className="h-5 w-24 rounded bg-gray-100" />
-            <div className="mt-4 h-8 w-40 rounded bg-gray-100" />
-            <div className="mt-8 space-y-4">
-              <div className="h-24 rounded-2xl bg-gray-100" />
-              <div className="h-24 rounded-2xl bg-gray-100" />
-              <div className="h-24 rounded-2xl bg-gray-100" />
-            </div>
-          </div>
+      <div className="py-8 font-pretendard flex justify-center">
+        <div className="w-full max-w-md animate-pulse rounded-3xl bg-white p-8 shadow-sm ring-1 ring-gray-100">
+          <div className="h-5 w-24 rounded bg-gray-100" />
+          <div className="mt-4 h-12 w-full rounded-2xl bg-gray-100" />
+          <div className="mt-6 h-12 w-full rounded-2xl bg-gray-100" />
+          <div className="mt-6 h-12 w-full rounded-2xl bg-gray-100" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="py-8 font-pretendard">
-      <div className="space-y-8">
-        <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 md:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-[15px] font-semibold text-[#F97316]">마이페이지</p>
-              <h1 className="mt-2 text-3xl font-extrabold text-[#212529]">내 정보 수정</h1>
-              <p className="mt-3 text-[15px] font-medium leading-7 text-gray-600">
-                별명과 비밀번호를 현재 로그인 방식에 맞게 간단하게 관리할 수 있어요.
-              </p>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl bg-gray-50 p-5">
-                  <p className="text-[15px] font-semibold text-gray-500">현재 별명</p>
-                  <p className="mt-2 text-2xl font-extrabold tracking-tight text-[#212529]">{currentNickname}</p>
-                </div>
-                <div className="rounded-2xl bg-gray-50 p-5">
-                  <p className="text-[15px] font-semibold text-gray-500">로그인 방식</p>
-                  <p className="mt-2 text-2xl font-extrabold tracking-tight text-[#212529]">{providerLabel}</p>
-                </div>
-              </div>
-            </div>
-            <Link
-              href="/mypage/info"
-              className="inline-flex items-center justify-center rounded-full border border-[#F97316]/20 px-5 py-3 text-[15px] font-bold text-[#F97316] transition-colors hover:bg-[#FFF1E8]"
-            >
-              마이페이지로 돌아가기
-            </Link>
-          </div>
-        </section>
+    <div className="py-8 font-pretendard flex justify-center px-4">
+      <div className="w-full max-w-2xl space-y-8">
+        <h1 className="text-center text-2xl md:text-3xl font-extrabold text-[#212529]">내 정보 수정</h1>
 
         <form onSubmit={onSubmit} className="space-y-6">
-          <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 md:p-8">
-            <div>
-              <p className="text-[15px] font-semibold text-[#F97316]">기본 정보</p>
-              <h2 className="mt-1 text-xl font-extrabold text-[#212529]">별명과 이메일 확인</h2>
+          {/* 별명 수정 */}
+          <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+            <div className="flex items-center gap-2">
+              <label htmlFor="nickname" className="text-[15px] font-bold text-[#212529]">
+                별명 수정
+              </label>
+              <PencilIcon className="h-4 w-4 text-gray-400" />
             </div>
-
-            <div className="grid gap-5 md:grid-cols-2 md:gap-6">
-              <div className="rounded-2xl bg-gray-50 p-5">
-                <label htmlFor="nickname" className="block text-[15px] font-bold text-[#212529]">
-                  별명
-                </label>
-                <input
-                  id="nickname"
-                  type="text"
-                  autoComplete="nickname"
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-[15px] font-semibold text-[#212529] outline-none transition focus:border-[#ff5700] focus:ring-2 focus:ring-[#ff5700]/15"
-                  placeholder="한글, 영어, 숫자만 가능"
-                  {...register("nickname", {
-                    required: "별명을 입력해 주세요.",
-                    pattern: {
-                      value: NICKNAME_PATTERN,
-                      message: "별명은 한글, 영어, 숫자만 사용할 수 있어요.",
-                    },
-                    minLength: {
-                      value: 1,
-                      message: "별명을 1자 이상 입력해 주세요.",
-                    },
-                  })}
-                />
-                {errors.nickname ? (
-                  <p className="mt-2 text-[15px] font-medium text-[#ff5700]">{errors.nickname.message}</p>
-                ) : nicknameMessage ? (
-                  <p className={`mt-2 text-[15px] font-medium ${nicknameMessage.color}`}>{nicknameMessage.text}</p>
-                ) : null}
-              </div>
-
-              <div className="rounded-2xl bg-gray-50 p-5">
-                <label className="block text-[15px] font-bold text-[#212529]">
-                  이메일
-                </label>
-                <div className="mt-2 rounded-2xl bg-white px-4 py-3">
-                  <p className="break-all text-[15px] font-semibold leading-7 text-[#212529]">
-                    {profileMeta?.email || session?.user?.email || "이메일 정보가 없어요."}
-                  </p>
-                </div>
-                <p className="mt-2 text-[15px] font-medium text-gray-500">이메일은 수정할 수 없어요.</p>
-              </div>
-            </div>
+            <input
+              id="nickname"
+              type="text"
+              autoComplete="nickname"
+              className="mt-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-[15px] font-medium text-[#212529] outline-none transition placeholder:text-gray-400 focus:border-[#ff5700] focus:ring-2 focus:ring-[#ff5700]/15"
+              placeholder="한글, 영어, 숫자 1~10자"
+              {...register("nickname", {
+                required: "별명을 입력해 주세요.",
+                validate: (v) => {
+                  const t = (v ?? "").replace(/\s/g, "").trim();
+                  if (t.length === 0) return "별명을 입력해 주세요.";
+                  if (t.length > 10) return "별명은 10자 이내로 입력해 주세요.";
+                  return NICKNAME_PATTERN.test(t) || "공백 없이 1~10자로 입력해 주세요.";
+                },
+              })}
+            />
+            {errors.nickname ? (
+              <p className="mt-2 text-sm font-medium text-[#ff5700]">{errors.nickname.message}</p>
+            ) : nicknameMessage ? (
+              <p className={`mt-2 text-sm font-medium ${nicknameMessage.color}`}>{nicknameMessage.text}</p>
+            ) : null}
           </section>
 
+          {/* 비밀번호 변경 — 이메일 로그인일 때만 */}
           {profileMeta?.canChangePassword ? (
-            <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 md:p-8">
-              <div>
-                <p className="text-[15px] font-semibold text-[#F97316]">비밀번호 변경</p>
-                <h2 className="mt-1 text-xl font-extrabold text-[#212529]">안전하게 새 비밀번호 설정</h2>
-              </div>
-
-              <div className="mt-6 grid gap-5 md:grid-cols-2 md:gap-6">
-                <div className="rounded-2xl bg-gray-50 p-5">
-                  <label htmlFor="password" className="block text-[15px] font-bold text-[#212529]">
+            <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+              <h2 className="text-[15px] font-bold text-[#212529]">비밀번호 변경</h2>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-600">
                     새 비밀번호
                   </label>
                   <input
                     id="password"
                     type="password"
                     autoComplete="new-password"
-                    className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-[15px] font-semibold text-[#212529] outline-none transition focus:border-[#ff5700] focus:ring-2 focus:ring-[#ff5700]/15"
+                    className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-[15px] font-medium text-[#212529] outline-none transition placeholder:text-gray-400 focus:border-[#ff5700] focus:ring-2 focus:ring-[#ff5700]/15"
                     placeholder="변경하지 않으려면 비워두세요"
                     {...register("password", {
                       validate: (value) =>
-                        !value || value.length >= 8 || "비밀번호는 8자 이상이어야 합니다.",
+                        !value || value.length >= 8 || "비밀번호는 8자 이상이에요.",
                     })}
                   />
                   {errors.password && (
-                    <p className="mt-2 text-[15px] font-medium text-[#ff5700]">{errors.password.message}</p>
+                    <p className="mt-1.5 text-sm font-medium text-[#ff5700]">{errors.password.message}</p>
                   )}
                 </div>
-
-                <div className="rounded-2xl bg-gray-50 p-5">
-                  <label htmlFor="confirmPassword" className="block text-[15px] font-bold text-[#212529]">
+                <div className="md:col-span-1">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-600">
                     새 비밀번호 확인
                   </label>
                   <input
                     id="confirmPassword"
                     type="password"
                     autoComplete="new-password"
-                    className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-[15px] font-semibold text-[#212529] outline-none transition focus:border-[#ff5700] focus:ring-2 focus:ring-[#ff5700]/15"
+                    className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-[15px] font-medium text-[#212529] outline-none transition placeholder:text-gray-400 focus:border-[#ff5700] focus:ring-2 focus:ring-[#ff5700]/15"
                     placeholder="한 번 더 입력해 주세요"
                     {...register("confirmPassword", {
                       validate: (value) =>
@@ -389,11 +353,11 @@ export default function ProfileEditForm() {
                     })}
                   />
                   {errors.confirmPassword ? (
-                    <p className="mt-2 text-[15px] font-medium text-[#ff5700]">
+                    <p className="mt-1.5 text-sm font-medium text-[#ff5700]">
                       {errors.confirmPassword.message}
                     </p>
                   ) : confirmMessage ? (
-                    <p className={`mt-2 text-[15px] font-medium ${confirmMessage.color}`}>{confirmMessage.text}</p>
+                    <p className={`mt-1.5 text-sm font-medium ${confirmMessage.color}`}>{confirmMessage.text}</p>
                   ) : null}
                 </div>
               </div>
@@ -401,24 +365,30 @@ export default function ProfileEditForm() {
           ) : null}
 
           {(submitError || saveMessage) && (
-            <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
               {submitError ? (
-                <p className="text-[15px] font-medium text-[#ff5700]">{submitError}</p>
+                <p className="text-sm font-medium text-[#ff5700]">{submitError}</p>
               ) : (
-                <p className="text-[15px] font-medium text-emerald-600">{saveMessage}</p>
+                <p className="text-sm font-medium text-emerald-600">{saveMessage}</p>
               )}
-            </section>
+            </div>
           )}
 
-          <div className="flex flex-col gap-3 md:flex-row md:justify-end">
+          <div className="flex gap-3">
             <button
               type="submit"
               disabled={!submitEnabled}
-              className="inline-flex items-center justify-center rounded-full px-6 py-3 text-[15px] font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:bg-gray-300 md:min-w-[140px]"
-              style={{ backgroundColor: submitEnabled ? ORANGE : undefined }}
+              className="flex-1 rounded-xl py-3 text-[15px] font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ backgroundColor: submitEnabled ? ORANGE : "#9ca3af" }}
             >
-              {submitting ? "수정 중..." : "수정하기"}
+              {submitting ? "저장 중..." : "수정 완료"}
             </button>
+            <Link
+              href="/mypage/info"
+              className="flex flex-1 items-center justify-center rounded-xl border border-gray-300 py-3 text-[15px] font-bold text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              취소
+            </Link>
           </div>
         </form>
       </div>

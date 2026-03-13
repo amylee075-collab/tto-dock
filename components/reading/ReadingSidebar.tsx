@@ -15,6 +15,8 @@ interface ReadingSidebarProps {
   totalSentences: number;
   cpmStatus?: CPMStatus;
   readingStarted?: boolean;
+  /** 30초/45초 경과 시 읽은 문장 1개 이하일 때 안내 문구 (작은 툴팁) */
+  slowStartHint?: string | null;
   className?: string;
   /** 모바일: 상단 접이식(아코디언)으로 렌더 */
   asAccordion?: boolean;
@@ -50,6 +52,7 @@ export default function ReadingSidebar({
   totalSentences,
   cpmStatus = "ready",
   readingStarted = true,
+  slowStartHint = null,
   className = "",
   asAccordion = false,
 }: ReadingSidebarProps) {
@@ -217,30 +220,37 @@ export default function ReadingSidebar({
           </div>
 
           {/* 네 번째 줄: 또독이 아이콘 + 피드백 메시지 (한 줄 flex-row, 수직 중앙 정렬) */}
-          <div className="flex flex-row items-center gap-3 min-w-0">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-100 bg-[#fff5f0]">
-              {!avatarError ? (
-                <Image
-                  src="/images/character.png"
-                  alt="또독이"
-                  width={40}
-                  height={40}
-                  className="w-full h-auto object-contain object-top"
-                  onError={() => setAvatarError(true)}
-                />
-              ) : (
-                <span className="text-xl" aria-hidden>
-                  🦊
-                </span>
-              )}
-            </span>
-            <p className="text-base font-medium text-[#212529] leading-snug min-w-0 flex-1 break-words">
-              {!readingStarted
-                ? "읽기 시작을 누르면 측정이 시작돼요."
-                : isMeasuring
-                ? "몇 문장 더 읽으면 속도가 표시돼요."
-                : tierMessage}
-            </p>
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex flex-row items-center gap-3 min-w-0">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-100 bg-[#fff5f0]">
+                {!avatarError ? (
+                  <Image
+                    src="/images/character.png"
+                    alt="또독이"
+                    width={40}
+                    height={40}
+                    className="w-full h-auto object-contain object-top"
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  <span className="text-xl" aria-hidden>
+                    🦊
+                  </span>
+                )}
+              </span>
+              <p className="text-base font-medium text-[#212529] leading-snug min-w-0 flex-1 break-words">
+                {!readingStarted
+                  ? "읽기 시작을 누르면 측정이 시작돼요."
+                  : isMeasuring
+                  ? "몇 문장 더 읽으면 속도가 표시돼요."
+                  : tierMessage}
+              </p>
+            </div>
+            {slowStartHint && (
+              <p className="text-sm text-gray-500 pl-[3.25rem] leading-snug" role="status">
+                {slowStartHint}
+              </p>
+            )}
           </div>
         </div>
       </div>

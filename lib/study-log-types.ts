@@ -132,6 +132,53 @@ export function getLast7KstDateKeys(baseDate = new Date()): string[] {
   return out;
 }
 
+/** 출석 체크용: 오늘 기준 [어제-3, 어제-2, 어제, 오늘, 내일] 5일 + 요일(월,화,수...) */
+export interface AttendanceDayItem {
+  dateKey: string;
+  dayLabel: string;
+  monthDay: string;
+  isToday: boolean;
+  isFuture: boolean;
+}
+
+export function getAttendanceWindow(baseDate = new Date()): AttendanceDayItem[] {
+  const { year, month, day } = getKstDateParts(baseDate);
+  const todayStart = new Date(Date.UTC(year, month - 1, day));
+  const toKey = (d: Date) => {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dayNum = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${dayNum}`;
+  };
+  const toDayLabel = (d: Date) => {
+    return new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "Asia/Seoul",
+      weekday: "short",
+    }).format(d);
+  };
+  const toMonthDay = (dateKey: string) => {
+    const [, m, d] = dateKey.split("-");
+    return `${Number(m)}/${Number(d)}`;
+  };
+
+  const todayKey = getKstDateKey(baseDate);
+  const out: AttendanceDayItem[] = [];
+
+  for (let offset = -3; offset <= 1; offset++) {
+    const d = new Date(todayStart);
+    d.setUTCDate(d.getUTCDate() + offset);
+    const dateKey = toKey(d);
+    out.push({
+      dateKey,
+      dayLabel: toDayLabel(d),
+      monthDay: toMonthDay(dateKey),
+      isToday: dateKey === todayKey,
+      isFuture: offset > 0,
+    });
+  }
+  return out;
+}
+
 export function buildStudyLogId(input: {
   userId?: string;
   logType: StudyLogType;

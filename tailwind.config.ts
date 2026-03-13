@@ -13,7 +13,16 @@ const config: Config = {
         "soft-orange": "#fff5f0",
       },
       fontFamily: {
-        pretendard: ["Pretendard", "sans-serif"],
+        pretendard: [
+          "Pretendard",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "system-ui",
+          "Roboto",
+          "Nanum Gothic",
+          "Nanum Myeongjo",
+          "sans-serif",
+        ],
       },
       maxWidth: {
         container: "1200px",

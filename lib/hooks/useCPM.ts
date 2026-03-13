@@ -39,6 +39,12 @@ const READY_EARLY_SMOOTH_WEIGHT_NEW = 0.1; // 0.9 : 0.1
 /** 초기 스무딩 기준값. measuring 중에도 이 값으로 계속 스무딩 누적 */
 const INITIAL_SMOOTH_CPM = 400;
 
+// ========== Safety Trigger (천천히 읽는 사용자 오해 방지) ==========
+/** 30초 이상 + 2문장 이상이면 강제 노출 (기존 조건 미충족 시에도) */
+const SAFETY_TRIGGER_ELAPSED_SEC = 30;
+/** 30초 트리거로 노출 시 데이터 부족 대비, 초기값(400) 쪽으로 스무딩 비중 확대 */
+const SAFETY_TRIGGER_SMOOTH_WEIGHT_NEW = 0.08;
+
 // ========== 노출값 변화 제한 ==========
 /** 노출값이 한 번에 바뀌는 최대 폭(CPM). 40으로 상향해 고속 구간(850+)에서도 1초마다 자연스럽게 따라가도록 함 */
 const MAX_DELTA_PER_UPDATE = 40;
@@ -61,8 +67,9 @@ function getTotalPassageChars(sentences: string[]): number {
 }
 
 /**
- * CPM 노출 가능 여부: 5초 이상 + 지문의 35% 이상 읽음 + 최소 2문장.
- * 짧은 지문(220~320자)에서도 중반 이전에 속도가 노출되도록 adaptive 적용.
+ * CPM 노출 가능 여부 (OR 조건).
+ * (1) 기본: 5초 이상 + 지문의 35% 이상 읽음 + 최소 2문장.
+ * (2) Safety Trigger: 30초 이상 + 2문장 이상 → 천천히 읽는 사용자도 속도 노출.
  */
 function canDisplayCPM(
   elapsedSec: number,
@@ -74,11 +81,36 @@ function canDisplayCPM(
     DISPLAY_MIN_CHARS_FLOOR,
     Math.round(totalPassageChars * ADAPTIVE_CHARS_RATIO)
   );
-  return (
+  const normal =
     elapsedSec >= DISPLAY_MIN_ELAPSED_SEC &&
     maxReachedChars >= minCharsRequired &&
-    readCount >= MIN_SENTENCES_FOR_READY
+    readCount >= MIN_SENTENCES_FOR_READY;
+  const safetyTrigger =
+    elapsedSec >= SAFETY_TRIGGER_ELAPSED_SEC && readCount >= MIN_SENTENCES_FOR_READY;
+  return normal || safetyTrigger;
+}
+
+/**
+ * Safety Trigger로만 노출된 경우 여부 (30초+2문장은 만족하나 기본 조건 미충족).
+ * 이때는 초기값 쪽 스무딩 비중을 높여 수치가 과하게 낮게 튀지 않게 함.
+ */
+function isDisplayedBySafetyTriggerOnly(
+  elapsedSec: number,
+  maxReachedChars: number,
+  readCount: number,
+  totalPassageChars: number
+): boolean {
+  const minCharsRequired = Math.max(
+    DISPLAY_MIN_CHARS_FLOOR,
+    Math.round(totalPassageChars * ADAPTIVE_CHARS_RATIO)
   );
+  const normal =
+    elapsedSec >= DISPLAY_MIN_ELAPSED_SEC &&
+    maxReachedChars >= minCharsRequired &&
+    readCount >= MIN_SENTENCES_FOR_READY;
+  const safetyTrigger =
+    elapsedSec >= SAFETY_TRIGGER_ELAPSED_SEC && readCount >= MIN_SENTENCES_FOR_READY;
+  return safetyTrigger && !normal;
 }
 
 /**
@@ -254,11 +286,19 @@ export function useCPM(
       if (readySinceRef.current === null) readySinceRef.current = now;
       setStatus("ready");
 
-      // ----- ready 직후 3초간 강한 스무딩(0.9:0.1)으로 수치 안정화 -----
+      const useSafetySmoothing = isDisplayedBySafetyTriggerOnly(
+        currentElapsedSec,
+        charsForCalc,
+        readCountForCalc,
+        totalPassageCharsForCalc
+      );
+
+      // ----- 30초 트리거로 노출 시 초기값(400) 쪽 스무딩 강화; 그 외 ready 직후 3초간 강한 스무딩 -----
       const readyElapsedSec = (now - readySinceRef.current) / 1000;
       const useEarlySmooth = readyElapsedSec < READY_EARLY_SMOOTH_SEC;
-      const weightNew =
-        useEarlySmooth
+      const weightNew = useSafetySmoothing
+        ? SAFETY_TRIGGER_SMOOTH_WEIGHT_NEW
+        : useEarlySmooth
           ? READY_EARLY_SMOOTH_WEIGHT_NEW
           : readCountForCalc < EARLY_SENTENCE_THRESHOLD
             ? EARLY_SMOOTH_WEIGHT_NEW
@@ -330,6 +370,34 @@ export function useCPM(
   }, [isActive, updateCPM]);
 
   const tierResult = getCPMTier(cpm);
+  /** 30초/45초 경과 시 읽은 문장이 1개 이하일 때 안내 문구 (측정 중일 때만 의미 있음) */
+  const slowStartHint =
+    status === "measuring" && readCount <= 1
+      ? elapsedSec >= 45
+        ? "읽기에 집중해 볼까요?"
+        : elapsedSec >= 30
+          ? "천천히 시작해도 괜찮아요."
+          : null
+      : null;
+
+  /**
+   * 읽기 완료 시점(예: 퀴즈로 이동)에 호출.
+   * 전체 글자 수 ÷ 보정된 읽기 시간(초)으로 CPM을 재계산해 반환 (문장 수가 아닌 글자 수 기준 보장).
+   */
+  const getFinalCpm = useCallback((): number => {
+    if (startTimeRef.current === null || totalPassageChars <= 0) return 0;
+    const now = Date.now();
+    const currentSegmentSec =
+      lastEnterTimeRef.current != null
+        ? (now - lastEnterTimeRef.current) / 1000
+        : 0;
+    const effectiveSec =
+      effectiveTimeRef.current + Math.max(currentSegmentSec, MIN_DWELL_SEC);
+    const safeSec = Math.max(effectiveSec, 1);
+    const finalCpm = Math.round((totalPassageChars * 60) / safeSec);
+    return Math.min(CPM_CAP, Math.max(0, finalCpm));
+  }, [totalPassageChars]);
+
   return {
     cpm,
     status,
@@ -340,5 +408,7 @@ export function useCPM(
     isReady,
     startReading,
     updateCPM,
+    getFinalCpm,
+    slowStartHint,
   };
 }

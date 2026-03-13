@@ -20,7 +20,7 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
   const [readingStarted, setReadingStarted] = useState(false);
 
   const { activeIndex, setActiveIndex, goNext, goPrev } = useActiveSentence(sentences.length);
-  const { cpm, status, tier, tierLabel, tierMessage, readCount, startReading, updateCPM } = useCPM(
+  const { cpm, status, tier, tierLabel, tierMessage, readCount, startReading, updateCPM, slowStartHint } = useCPM(
     sentences,
     activeIndex,
     isActive,
@@ -137,6 +137,7 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
           readCount={readCount}
           totalSentences={sentences.length}
           readingStarted={readingStarted}
+          slowStartHint={slowStartHint}
           asAccordion
         />
       </div>
@@ -218,6 +219,7 @@ export default function ReadingExperience({ passage, mode = "read" }: ReadingExp
           readCount={readCount}
           totalSentences={sentences.length}
           readingStarted={readingStarted}
+          slowStartHint={slowStartHint}
           className="w-full lg:w-64 lg:max-w-[16rem]"
         />
       </div>

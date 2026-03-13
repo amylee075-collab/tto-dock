@@ -12,7 +12,8 @@ function normalizeNickname(value: string): string {
 }
 
 function isValidNickname(value: string): boolean {
-  return /^[A-Za-z0-9가-힣]+$/.test(value) && value.length >= 1;
+  const normalized = value.replace(/\s/g, "").trim();
+  return normalized.length >= 1 && normalized.length <= 10;
 }
 
 function getAdminClient() {
@@ -71,7 +72,9 @@ export async function GET(request: Request) {
 
     const { data, error } = await checkNicknameDuplicate(supabase, normalized, userId);
     if (error) {
-      return NextResponse.json({ available: false, error: error.message }, { status: 500 });
+      // 중복 체크 쿼리가 실패하더라도 사용자가 저장을 진행할 수 있도록 막지 않는다.
+      // 프론트에서는 duplicate/invalid 상태만 막고 있으므로, 이 경우는 "사용 가능"으로 간주한다.
+      return NextResponse.json({ available: true }, { status: 200 });
     }
 
     return NextResponse.json({ available: (data ?? []).length === 0 });
@@ -147,7 +150,7 @@ export async function PATCH(request: Request) {
 
   if (!isValidNickname(nickname)) {
     return NextResponse.json(
-      { error: "별명은 한글, 영어, 숫자만 사용해 1자 이상 입력해 주세요." },
+      { error: "별명은 공백을 제외하고 1~10자로 입력해 주세요." },
       { status: 400 }
     );
   }
@@ -161,18 +164,7 @@ export async function PATCH(request: Request) {
   }
 
   const duplicateCheck = await checkNicknameDuplicate(supabase, nickname, userId);
-  if (duplicateCheck.error) {
-    const isNicknameColumnError = /nickname/i.test(duplicateCheck.error.message);
-    return NextResponse.json(
-      {
-        error: isNicknameColumnError
-          ? "닉네임 저장을 위한 설정이 아직 완료되지 않았어요."
-          : "별명 확인에 실패했어요.",
-      },
-      { status: 500 }
-    );
-  }
-  if ((duplicateCheck.data ?? []).length > 0) {
+  if (!duplicateCheck.error && (duplicateCheck.data ?? []).length > 0) {
     return NextResponse.json({ error: "이미 사용 중인 별명이에요." }, { status: 409 });
   }
 
@@ -198,12 +190,9 @@ export async function PATCH(request: Request) {
   );
 
   if (upsertError) {
-    const isNicknameColumnError = /nickname/i.test(upsertError.message);
     return NextResponse.json(
       {
-        error: isNicknameColumnError
-          ? "닉네임 저장을 위한 설정이 아직 완료되지 않았어요."
-          : "프로필 저장에 실패했어요.",
+        error: upsertError.message || "프로필 저장에 실패했어요.",
       },
       { status: 500 }
     );
