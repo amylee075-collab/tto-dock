@@ -1,83 +1,250 @@
 "use client";
 
+import { useId, useMemo, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ComposedChart,
+  Label,
+  Line,
+  ReferenceDot,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  CHART_MARGIN,
+  GROWTH_CHART,
+  GROWTH_CHART_STYLE,
+  XAXIS_PADDING,
+} from "@/lib/growth-chart-layout";
+
+const ACCENT = "#F97316";
+const ZERO_STATE_MESSAGE = "아직 읽기 속도 기록이 없어요.";
+
 interface SpeedAreaChartProps {
   data: number[];
   /** X축 라벨 (길이 7). 있으면 MM/DD 표시 */
   labels?: string[];
 }
 
-/** 속도 데이터에 1개 이상 값이 있을 때만 선/영역 그래프 표시 */
 function hasLineData(data: number[]): boolean {
   return data.some((v) => v > 0);
 }
 
-const ZERO_STATE_MESSAGE = "아직 읽기 속도 기록이 없어요.";
+/** 그라데이션 영역용 defs (글로우/필터 없음) */
+function SpeedChartDefs({ gradientId }: { gradientId: string }) {
+  return (
+    <svg aria-hidden className="absolute h-0 w-0 overflow-hidden">
+      <defs>
+        <linearGradient
+          id={gradientId}
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+          gradientUnits="objectBoundingBox"
+        >
+          <stop offset="0%" stopColor={ACCENT} stopOpacity={0.35} />
+          <stop offset="100%" stopColor={ACCENT} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+/** 평면 라벨용 텍스트 색 (배경과 대비 확보) */
+const LABEL_FILL = "#111827";
 
 export default function SpeedAreaChart({ data, labels }: SpeedAreaChartProps) {
-  const showChart = hasLineData(data);
-  const arr =
-    data.length >= 7 ? data.slice(0, 7) : [...data, ...Array(7 - data.length).fill(0)].slice(0, 7);
-  const max = showChart ? Math.max(...arr, 1) : 1;
-  const min = showChart ? Math.min(...arr, max) : 0;
-  const range = max - min || 1;
+  const uid = useId().replace(/:/g, "");
+  const gradientId = `speed-area-gradient-${uid}`;
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const points = arr.map((v, i) => ({
-    x: (i / 6) * 100,
-    y: 90 - ((v - min) / range) * 70,
-  }));
+  const arr = useMemo(
+    () =>
+      data.length >= GROWTH_CHART.SLOT_COUNT
+        ? data.slice(0, GROWTH_CHART.SLOT_COUNT)
+        : [...data, ...Array(GROWTH_CHART.SLOT_COUNT - data.length).fill(0)].slice(
+            0,
+            GROWTH_CHART.SLOT_COUNT
+          ),
+    [data]
+  );
 
-  const linePath = "M " + points.map((p) => `${p.x} ${p.y}`).join(" L ");
-  const areaPath =
-    `M 0 100 L 0 ${points[0]?.y ?? 100} L ` +
-    points.map((p) => `${p.x} ${p.y}`).join(" L ") +
-    ` L 100 ${points[points.length - 1]?.y ?? 100} L 100 100 Z`;
+  const displayLabels = useMemo(
+    () =>
+      labels && labels.length >= GROWTH_CHART.SLOT_COUNT
+        ? labels.slice(0, GROWTH_CHART.SLOT_COUNT)
+        : Array.from(
+            { length: GROWTH_CHART.SLOT_COUNT },
+            (_, i) => `${String(i + 1).padStart(2, "0")}`
+          ),
+    [labels]
+  );
 
-  const emptyMessage = ZERO_STATE_MESSAGE;
+  const chartData = useMemo(
+    () =>
+      arr.map((value, i) => ({
+        name: displayLabels[i],
+        value: value,
+      })),
+    [arr, displayLabels]
+  );
+
+  const showChart = hasLineData(arr);
+  const peakIndex = useMemo(
+    () => chartData.reduce((best, d, i) => (d.value > chartData[best].value ? i : best), 0),
+    [chartData]
+  );
+  const peak = chartData[peakIndex];
 
   return (
-    <section className="w-full min-w-0 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm mb-8 overflow-hidden">
-      <h3 className="font-extrabold text-lg text-[#212529] mb-4">
-        속도 변화
-      </h3>
-      <div className="h-44 relative flex items-center justify-center">
+    <section className={GROWTH_CHART_STYLE.CARD_CLASS}>
+      <SpeedChartDefs gradientId={gradientId} />
+      <h3 className={GROWTH_CHART_STYLE.TITLE_CLASS}>속도 변화</h3>
+      <div
+        className={GROWTH_CHART_STYLE.CHART_WRAPPER_CLASS}
+        style={{ minHeight: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT }}
+      >
         {showChart ? (
-          <svg
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            className="w-full h-full"
+          <ResponsiveContainer
+            width="100%"
+            minHeight={GROWTH_CHART_STYLE.CHART_MIN_HEIGHT}
           >
-            <path
-              d={areaPath}
-              fill="rgba(255, 87, 0, 0.12)"
-            />
-            <path
-              d={linePath}
-              fill="none"
-              stroke="#ff5700"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+            <ComposedChart
+              data={chartData}
+              margin={CHART_MARGIN}
+              onMouseMove={(e) => {
+                const idx = e?.activeTooltipIndex ?? null;
+                setHoveredIndex(typeof idx === "number" ? idx : null);
+              }}
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              <CartesianGrid
+                strokeDasharray={GROWTH_CHART_STYLE.GRID_STROKE_DASHARRAY}
+                stroke={GROWTH_CHART_STYLE.GRID_STROKE}
+                horizontal={false}
+                vertical
+              />
+              <XAxis
+                type="category"
+                dataKey="name"
+                scale="point"
+                interval={0}
+                padding={XAXIS_PADDING}
+                tick={{
+                  fill: GROWTH_CHART_STYLE.AXIS_LABEL_FILL,
+                  fontSize: GROWTH_CHART_STYLE.AXIS_LABEL_FONT_SIZE,
+                  fontWeight: 500,
+                }}
+                axisLine={{ stroke: GROWTH_CHART_STYLE.GRID_STROKE }}
+                tickLine={false}
+              />
+              <YAxis
+                domain={[0, "auto"]}
+                hide
+              />
+              <Tooltip
+                cursor={{ stroke: GROWTH_CHART_STYLE.GRID_STROKE, strokeDasharray: "3 3" }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                      <span className="text-xs font-semibold text-gray-500">{d.name}</span>
+                      <span className="ml-2 text-sm font-bold text-[#212529]">{d.value}</span>
+                    </div>
+                  );
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="none"
+                fill={`url(#${gradientId})`}
+                isAnimationActive
+                animationDuration={600}
+              />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={ACCENT}
+                strokeWidth={2.5}
+                dot={({ cx, cy, index, value }) => {
+                  const hasValue = value != null && Number(value) > 0;
+                  const isHovered = hoveredIndex === index;
+                  if (!hasValue && !isHovered) return null;
+                  const r = isHovered ? 8 : 6;
+                  return (
+                    <circle
+                      key={`dot-${index}`}
+                      cx={cx}
+                      cy={cy}
+                      r={r}
+                      fill="white"
+                      stroke={ACCENT}
+                      strokeWidth={isHovered ? 2.5 : 2}
+                    />
+                  );
+                }}
+                activeDot={false}
+                isAnimationActive
+                animationDuration={600}
+              />
+              {peak && peak.value > 0 && (
+                <ReferenceDot
+                  x={peak.name}
+                  y={peak.value}
+                  r={0}
+                  fill="transparent"
+                >
+                  <Label
+                    value={peak.value}
+                    position="top"
+                    offset={8}
+                    content={({ x, y, value }) => (
+                      <g>
+                        <rect
+                          x={(x ?? 0) - 24}
+                          y={(y ?? 0) - 32}
+                          width={48}
+                          height={24}
+                          rx={6}
+                          fill="#F3F4F6"
+                          stroke="#E5E7EB"
+                          strokeWidth={1}
+                        />
+                        <text
+                          x={x}
+                          y={(y ?? 0) - 20}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill={LABEL_FILL}
+                          fontSize={11}
+                          fontWeight={600}
+                        >
+                          {value}
+                        </text>
+                      </g>
+                    )}
+                  />
+                </ReferenceDot>
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
         ) : (
-          <p className="text-sm font-medium text-gray-400 text-center px-4">
-            {emptyMessage}
-          </p>
+          <div
+            className="flex items-center justify-center text-sm font-medium text-gray-400 px-4"
+            style={{ minHeight: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT }}
+          >
+            {ZERO_STATE_MESSAGE}
+          </div>
         )}
       </div>
-      {labels && labels.length >= 7 && (
-        <div className="flex justify-between gap-1 mt-2 px-0.5">
-          {labels.slice(0, 7).map((label, i) => (
-            <span
-              key={i}
-              className="text-xs font-medium text-gray-500"
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-      )}
-      <p className="text-sm font-medium text-gray-500 mt-2">
+      <p className={GROWTH_CHART_STYLE.SUBTITLE_CLASS}>
         최근 7일 읽기 속도(글자/분) 변화
       </p>
     </section>

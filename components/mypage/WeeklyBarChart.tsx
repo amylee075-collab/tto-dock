@@ -1,9 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useMemo } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  LabelList,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  CHART_MARGIN,
+  GROWTH_CHART,
+  GROWTH_CHART_STYLE,
+  XAXIS_PADDING,
+} from "@/lib/growth-chart-layout";
 
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const BAR_SIZE = 32;
+const BAR_FILL = "#ff5700";
+/** 평면 라벨용 텍스트 색 (배경과 대비 확보) */
+const LABEL_FILL = "#111827";
 
 interface WeeklyBarChartProps {
   data: number[];
@@ -16,63 +34,113 @@ function hasBarData(data: number[]): boolean {
 }
 
 export default function WeeklyBarChart({ data, labels }: WeeklyBarChartProps) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const showBars = hasBarData(data);
-  const max = Math.max(...data, 1);
-  const xLabels = labels && labels.length >= 7 ? labels.slice(0, 7) : DAY_LABELS;
+
+  const arr = useMemo(
+    () =>
+      data.length >= GROWTH_CHART.SLOT_COUNT
+        ? data.slice(0, GROWTH_CHART.SLOT_COUNT)
+        : [...data, ...Array(GROWTH_CHART.SLOT_COUNT - data.length).fill(0)].slice(
+            0,
+            GROWTH_CHART.SLOT_COUNT
+          ),
+    [data]
+  );
+
+  const xLabels =
+    labels && labels.length >= GROWTH_CHART.SLOT_COUNT
+      ? labels.slice(0, GROWTH_CHART.SLOT_COUNT)
+      : DAY_LABELS;
+
+  const chartData = useMemo(
+    () =>
+      arr.map((value, i) => ({
+        name: xLabels[i],
+        value,
+      })),
+    [arr, xLabels]
+  );
+
+  const showBars = hasBarData(arr);
 
   return (
-    <section className="w-full min-w-0 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm mb-8 overflow-hidden">
-      <h3 className="font-extrabold text-lg text-[#212529] mb-4">
-        주간 학습량
-      </h3>
-      <div className="flex items-end justify-between gap-2 h-40">
+    <section className={GROWTH_CHART_STYLE.CARD_CLASS}>
+      <h3 className={GROWTH_CHART_STYLE.TITLE_CLASS}>주간 학습량</h3>
+      <div
+        className={GROWTH_CHART_STYLE.CHART_WRAPPER_CLASS}
+        style={{ minHeight: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT }}
+      >
         {showBars ? (
-          data.slice(0, 7).map((value, i) => (
-            <div
-              key={i}
-              className="flex-1 flex flex-col items-center gap-1 relative"
-              onMouseEnter={() => setHoveredIndex(i)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              title={`${xLabels[i]}: ${value}문장`}
+          <ResponsiveContainer
+            width="100%"
+            minHeight={GROWTH_CHART_STYLE.CHART_MIN_HEIGHT}
+          >
+            <BarChart
+              data={chartData}
+              margin={CHART_MARGIN}
+              barCategoryGap="12%"
+              barGap={4}
             >
-              <div className="h-28 w-full flex flex-col items-center">
-                {value > 0 && (
-                  <span className="text-xs font-bold text-[#212529] mb-0.5 tabular-nums shrink-0">
-                    {value}문장
-                  </span>
-                )}
-                <div className="flex-1 min-h-0 w-full flex justify-center items-end">
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${(value / max) * 100}%` }}
-                    transition={{
-                      duration: 0.8,
-                      delay: i * 0.08,
-                      ease: [0.25, 0.46, 0.45, 0.94],
-                    }}
-                    className="w-full max-w-[2rem] rounded-t bg-ttodock-orange min-h-[4px]"
-                  />
-                </div>
-              </div>
-              <span className="text-xs font-medium text-gray-500">
-                {xLabels[i]}
-              </span>
-              {hoveredIndex === i && (
-                <div
-                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded bg-gray-800 text-white text-xs font-medium whitespace-nowrap z-10 pointer-events-none"
-                  role="tooltip"
-                >
-                  {xLabels[i]}: {value}문장
-                </div>
-              )}
-            </div>
-          ))
+              <CartesianGrid
+                strokeDasharray={GROWTH_CHART_STYLE.GRID_STROKE_DASHARRAY}
+                stroke={GROWTH_CHART_STYLE.GRID_STROKE}
+                horizontal={false}
+                vertical
+              />
+              <XAxis
+                type="category"
+                dataKey="name"
+                scale="point"
+                interval={0}
+                padding={XAXIS_PADDING}
+                tick={{
+                  fill: GROWTH_CHART_STYLE.AXIS_LABEL_FILL,
+                  fontSize: GROWTH_CHART_STYLE.AXIS_LABEL_FONT_SIZE,
+                  fontWeight: 500,
+                }}
+                axisLine={{ stroke: GROWTH_CHART_STYLE.GRID_STROKE }}
+                tickLine={false}
+              />
+              <YAxis hide domain={[0, "auto"]} />
+              <Bar
+                dataKey="value"
+                fill={BAR_FILL}
+                barSize={BAR_SIZE}
+                radius={[4, 4, 0, 0]}
+                minPointSize={4}
+                isAnimationActive
+                animationDuration={800}
+                animationEasing="ease-out"
+              >
+                <LabelList
+                  position="top"
+                  content={(props) => {
+                    const { x, y, width, value } = props;
+                    if (value == null || Number(value) <= 0) return null;
+                    const cx = (x ?? 0) + (width ?? 0) / 2;
+                    return (
+                      <text
+                        x={cx}
+                        y={(y ?? 0) - 8}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill={LABEL_FILL}
+                        fontSize={GROWTH_CHART_STYLE.AXIS_LABEL_FONT_SIZE}
+                        fontWeight={700}
+                      >
+                        {value}문장
+                      </text>
+                    );
+                  }}
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         ) : (
-          <div className="w-full flex items-center justify-center h-full min-h-[8rem]">
-            <p className="text-sm font-medium text-gray-400 text-center px-4">
-              아직 주간 학습 기록이 없어요.
-            </p>
+          <div
+            className="flex items-center justify-center text-sm font-medium text-gray-400 px-4"
+            style={{ minHeight: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT }}
+          >
+            아직 주간 학습 기록이 없어요.
           </div>
         )}
       </div>

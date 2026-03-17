@@ -111,8 +111,13 @@ export default function StudyLogReportModal({
           <div className="rounded-3xl border border-gray-100 bg-white p-5">
             <p className="text-sm font-semibold text-[#F97316]">영역별 결과</p>
             {radarData.length > 0 ? (
-              <div className="mt-4 h-[260px] w-full min-w-0 flex items-center justify-center">
-                <RadarChart width={260} height={260} data={radarData}>
+              <div className="mt-4 h-[260px] w-full min-w-0 flex items-center justify-center overflow-visible">
+                <RadarChart
+                  width={260}
+                  height={260}
+                  data={radarData}
+                  margin={{ top: 24, right: 24, bottom: 24, left: 24 }}
+                >
                   <PolarGrid stroke="#FDE7D7" />
                   <PolarAngleAxis
                     dataKey="subject"

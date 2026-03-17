@@ -325,6 +325,79 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
   - `/mypage/info`: 내 정보
   - `/mypage/info/edit`: 내 정보 수정
   - `/mypage/growth-report`: 나의 성장 리포트
+
+---
+
+## 8. 마이페이지 집계·배지 시스템 (내 정보 / 성장 리포트)
+
+### 8.1 마이페이지 대시보드 집계 (`lib/study-log-types.ts`)
+
+- **위치:** `aggregateDashboardStatsFromLogs(logs)`
+- `reading_session` 타입의 `study_logs` 를 기준으로 다음 값을 집계:
+  - `totalSentencesRead`: 최근 7일 누적 읽은 문장 수
+  - `todayAccuracy`: 당일(또는 최근 세션) 퀴즈 정답률
+  - `averageWpm`: 최근 세션들의 CPM 평균
+  - `streakDays`: 오늘을 기준으로 한 **연속 출석 일수**
+  - `weeklySentencesByDay`: 최근 7일 날짜 키별 읽은 문장 수 배열
+  - `weeklyWpmByDay`: 최근 7일 날짜 키별 평균 CPM 배열
+  - `last7DayLabels`: `MM/DD` 형식의 최근 7일 라벨
+  - `thinkingNotes`: 3단계 문해 활동에서 수집된 요약·사고력 노트
+
+이 집계 결과는 `/mypage/info` 의 출석 체크, 최근 학습 기록, `/mypage/growth-report` 의 7일 학습 통계 차트·활동 요약 카드에 재사용된다.
+
+### 8.2 배지 정의 (`lib/badges.ts`)
+
+- **위치:** `lib/badges.ts`
+- 상수 `BADGE_LIST` 에 20개 배지를 정의:
+  - 카테고리: `habit`(출석/습관), `reading`(누적 읽기), `quiz`(정답률/오답 재도전), `speed`(속도/페이스), `deep`(3단계 작성), `special`(종합)
+  - 각 배지는 `{ id, name, description, condition, target, category, icon, subIcon }` 구조
+- 대표 조건:
+  - `STREAK`: `currentStreak >= target` (예: 3일·7일·30일 연속 학습)
+  - `READ_COUNT`: `totalSentences >= target` (100/500/1000/3000문장)
+  - `ACCURACY`: `lastQuizScore >= target` (100% 등)
+  - `SPEED`: `isOptimalSpeed === true` (권장 CPM 구간)
+  - `WRITE`: `step3WriteCount >= target` (3단계 사고력 작성 횟수)
+  - `SCORE`: 4개 영역 점수가 모두 `>= target` (예: 90점 이상)
+
+### 8.3 배지 체크 훅 (`hooks/useBadgeManager.ts`)
+
+- **핵심 API**
+  - `useBadgeManager(stats)` → `{ userStats, checkNewBadges, getBadgesWithUnlocked }`
+  - `checkNewBadges(userStats, earnedIds)`:
+    - 이미 획득한 배지 ID(`earnedIds`)를 제외하고, 현재 통계로 새로 달성한 배지를 반환
+  - `getBadgesWithUnlocked(userStats, earnedIds)`:
+    - `BADGE_LIST` 전부에 대해 `unlocked: boolean` 필드를 붙여 마이페이지에서 사용
+- `userStats` 예시 필드:
+  - `currentStreak`, `totalSentences`, `lastQuizScore`, `isOptimalSpeed`
+  - `continuousHighAccuracyCount`, `retrySuccessCount`, `wordQuizCount`
+  - `speedMaintainCount`, `step3WriteCount`, `domainScores[]`, `level`, `hasWeekendStudy`
+
+### 8.4 마이페이지 UI 노출 규칙
+
+#### 8.4.1 `/mypage/info` — 내 정보 대시보드
+
+- **출석 체크**
+  - `getAttendanceWindow()` 로 최근 5일 날짜 키와 요일 라벨을 생성.
+  - `readingLogs` 에 해당 날짜 키가 있으면 출석 도장 표시.
+  - 오늘은 최소 1회 로그인·페이지 진입 기준으로 출석 처리.
+  - UI는 5칸 고정 grid (`grid-cols-5`) 로 배치하여 성장 리포트 배지와 수직 위치를 맞춤.
+
+- **획득한 배지**
+  - `getBadgesWithUnlocked(userStats)` 결과에서 최근 unlock된 순으로 정렬해 상위 5개를 선택.
+  - 항상 **5칸 고정 레이아웃**을 유지하기 위해, 획득 배지가 5개 미만이면:
+    - 부족한 칸은 `icon: "HelpCircle"`(물음표) + `unlocked: false` 인 placeholder 로 채움.
+    - placeholder 슬롯은 `BadgeCard` 에서 **아이콘만 표시**하고, 배지 이름·설명 텍스트는 숨김.
+
+#### 8.4.2 `/mypage/growth-report` — 나의 성장 리포트
+
+- **7일 학습 통계**
+  - `weeklySentencesByDay` → 막대 그래프(주간 학습량)
+  - `weeklyWpmByDay` → 라인+에어리어 그래프(속도 변화)
+  - 두 그래프 모두 동일한 margin·padding·5칸 X축으로 정렬해 시각적으로 수직 정렬.
+
+- **활동 요약 카드**
+  - 최근 7일 로그 기반으로 `학습 일수 / 읽은 문장 / 평균 속도 / 평균 정답률` 계산.
+  - 값은 `text-[32px] font-black text-orange-500`(KPI) + 하단 라벨 `text-[14px] font-medium text-gray-500`.
 - `middleware.ts`는 `/mypage/:path*` 전체에 인증 보호를 적용한다.
 - 사이드 메뉴 `마이페이지` 그룹은 `내 정보`와 `나의 성장 리포트` 하위 메뉴를 고정 노출한다.
 

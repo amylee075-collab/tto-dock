@@ -17,6 +17,7 @@ import { STUDY_LOGS_UPDATED_EVENT, useUserStatus } from "@/hooks/useUserStatus";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from "recharts";
 import WeeklyBarChart from "@/components/mypage/WeeklyBarChart";
 import SpeedAreaChart from "@/components/mypage/SpeedAreaChart";
+import MypageTabs from "@/components/mypage/MypageTabs";
 
 function getDisplayName(name?: string | null, email?: string | null): string {
   const trimmedName = name?.trim();
@@ -113,11 +114,11 @@ function GrowthSectionCard({
 }) {
   const hasHeader = Boolean(title || subtitle);
   return (
-    <section className="py-2 md:py-3">
+    <section className="pt-0 pb-10 border-b border-gray-100">
       {hasHeader && (
-        <div className="mb-3 md:mb-4">
+        <div className="mb-4">
           {title ? (
-            <p className="text-base font-semibold text-[#F97316]">{title}</p>
+            <p className="text-[20px] font-semibold text-slate-800">{title}</p>
           ) : null}
           {subtitle ? (
             <h3 className="mt-1 text-xl font-extrabold text-[#212529]">{subtitle}</h3>
@@ -355,10 +356,12 @@ export default function GrowthReportDashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="py-8 font-pretendard">
-        <section className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
-          <h2 className="mb-3 text-xl font-extrabold text-[#212529]">로그인이 필요합니다</h2>
-          <p className="mb-6 text-base leading-6 text-gray-500">
+      <div className="py-8 font-pretendard leading-relaxed">
+        <section className="pt-0 pb-10 text-center border-b border-gray-100">
+          <h2 className="mb-4 text-[22px] font-bold tracking-tight text-[#212529]">
+            로그인이 필요합니다
+          </h2>
+          <p className="mb-6 text-[14px] text-gray-500">
             나의 성장 리포트를 확인하려면 먼저 로그인을 해주세요.
           </p>
           <button
@@ -374,11 +377,15 @@ export default function GrowthReportDashboard() {
   }
 
   return (
-    <div className="py-8 font-pretendard">
-      <div className="space-y-8">
-        <header>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#212529]">나의 성장 리포트</h1>
+    <div className="py-8 font-pretendard leading-relaxed">
+      <div className="space-y-12">
+        <header className="mb-2">
+          <h1 className="text-[28px] font-bold tracking-tight text-[#212529]">
+            나의 성장 리포트
+          </h1>
         </header>
+
+        <MypageTabs />
 
         {/* 종합 코칭: 읽기 습관 / 뱃지 / 한 줄 분석 */}
         <GrowthSectionCard title="분석 결과">
@@ -495,15 +502,17 @@ export default function GrowthReportDashboard() {
               {activitySummaryCards.map((card, index) => (
                 <div
                   key={`${card.label}-${index}`}
-                  className="rounded-2xl p-4 flex flex-col gap-2 bg-[#F9FAFB]"
+                  className="flex flex-col gap-2 p-4"
                 >
                   <div className="flex items-center gap-2">
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#F97316] shadow-sm">
                       {card.label === "학습 일수" ? "📅" : card.label === "읽은 문장" ? "📖" : "⚡"}
                     </span>
-                    <p className="text-base font-medium text-gray-600">{card.label}</p>
+                    <p className="text-sm font-medium text-gray-600">{card.label}</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-[#111827]">{card.value}</p>
+                  <p className="text-[32px] font-black text-orange-500">
+                    {card.value}
+                  </p>
                 </div>
               ))}
             </div>
@@ -516,9 +525,14 @@ export default function GrowthReportDashboard() {
         <div className="grid gap-4 lg:grid-cols-2">
           <GrowthSectionCard title="문해 성장 프로필">
             {hasGrowthData && cumulativeRadarData.length > 0 ? (
-              <div className="rounded-2xl bg-[#F5F3FF] p-4">
-                <div className="h-[260px] w-full min-w-0 flex items-center justify-center">
-                  <RadarChart width={260} height={260} data={cumulativeRadarData}>
+              <div className="p-6">
+                <div className="h-[260px] w-full min-w-0 flex items-center justify-center overflow-visible">
+                  <RadarChart
+                    width={260}
+                    height={260}
+                    data={cumulativeRadarData}
+                    margin={{ top: 24, right: 24, bottom: 24, left: 24 }}
+                  >
                     <PolarGrid stroke="#FDE7D7" />
                     <PolarAngleAxis
                       dataKey="subject"
