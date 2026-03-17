@@ -35,14 +35,17 @@ function buildLearnerOneLineAnalysis(
   const accuracyLabel =
     accuracy >= 80 ? "내용을 잘 파악하고" : accuracy >= 60 ? "이해도가 안정적이며" : "꼼꼼히 읽으려 노력하며";
 
-  if (tier === "초고속") {
+  if (tier === "매우 빠름") {
     return `${displayName}님은 아주 빠른 흐름을 유지하면서 ${accuracyLabel} 읽고 있어요.`;
   }
   if (tier === "안정적") {
     return `${displayName}님은 이상적인 속도로 글을 읽으며 ${accuracyLabel} 있어요.`;
   }
-  if (tier === "느림") {
+  if (tier === "차근차근") {
     return `${displayName}님은 아주 꼼꼼하게 한 문장씩 ${accuracyLabel} 학습해요.`;
+  }
+  if (tier === "빠름") {
+    return `${displayName}님은 빠른 흐름을 유지하며 ${accuracyLabel} 있어요.`;
   }
   return `${displayName}님은 나만의 읽기 리듬을 찾으며 ${accuracyLabel} 있어요.`;
 }
@@ -59,7 +62,7 @@ function buildBalanceInsight(averageWpm: number, accuracy: number): {
       description: "읽기 속도와 이해도의 균형이 아주 훌륭한 상태입니다.",
     };
   }
-  if (accuracy >= 80 && tier === "초고속") {
+  if (accuracy >= 80 && tier === "매우 빠름") {
     return {
       title: "쾌속 정독",
       description: "빠른 속도로 글을 읽으면서도 핵심을 놓치지 않고 있어요.",
@@ -238,13 +241,15 @@ export default function GrowthReportDashboard() {
         title: "읽기 리듬",
         value: speedTier,
         description:
-          speedTier === "초고속"
+          speedTier === "매우 빠름"
             ? "아주 빠른 흐름으로 글을 읽고 있습니다."
             : speedTier === "안정적"
               ? "글을 이해하기에 아주 적절한 속도입니다."
-              : speedTier === "느림"
+              : speedTier === "차근차근"
                 ? "꼼꼼하게 한 줄씩 정성 들여 읽고 있습니다."
-                : "나만의 읽기 속도를 차근차근 만들어가고 있어요.",
+                : speedTier === "빠름"
+                  ? "빠른 흐름을 유지하며 읽고 있어요."
+                  : "나만의 읽기 속도를 차근차근 만들어가고 있어요.",
       },
       {
         title: "이해도",
@@ -420,7 +425,7 @@ export default function GrowthReportDashboard() {
                     ? "bg-[#EFF6FF]"
                     : "bg-[#F5F3FF]";
                 const badgeColor =
-                  isRhythm && (card.value === "느림" || card.value === "보통")
+                  isRhythm && card.value === "차근차근"
                     ? "bg-[#FEF3C7] text-[#EA580C]"
                     : card.value === "안정적" || card.value === "훌륭함" || card.value === "완벽 균형"
                       ? "bg-[#DCFCE7] text-[#15803D]"
