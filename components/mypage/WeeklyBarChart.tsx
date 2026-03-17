@@ -116,11 +116,14 @@ export default function WeeklyBarChart({ data, labels }: WeeklyBarChartProps) {
                   content={(props) => {
                     const { x, y, width, value } = props;
                     if (value == null || Number(value) <= 0) return null;
-                    const cx = (x ?? 0) + (width ?? 0) / 2;
+                    const xx = typeof x === "number" ? x : 0;
+                    const yy = typeof y === "number" ? y : 0;
+                    const ww = typeof width === "number" ? width : 0;
+                    const cx = xx + ww / 2;
                     return (
                       <text
                         x={cx}
-                        y={(y ?? 0) - 8}
+                        y={yy - 8}
                         textAnchor="middle"
                         dominantBaseline="middle"
                         fill={LABEL_FILL}
