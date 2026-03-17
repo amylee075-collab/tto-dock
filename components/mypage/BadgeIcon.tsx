@@ -5,7 +5,9 @@ import type { BadgeCategory } from "@/lib/badges";
 import type { LucideIcon } from "lucide-react";
 
 function getIcon(name: string, fallback: LucideIcon): LucideIcon {
-  const Icon = (Icons as Record<string, LucideIcon | undefined>)[name];
+  // lucide-react 아이콘 모듈을 안전하게 인덱싱하기 위해 unknown 캐스팅을 한 번 거친다.
+  const iconsMap = Icons as unknown as Record<string, LucideIcon | undefined>;
+  const Icon = iconsMap[name];
   return Icon ?? fallback;
 }
 
