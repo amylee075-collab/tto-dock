@@ -67,16 +67,22 @@ export function checkNewBadges(
           scores.length >= 4 && scores.every((s) => s >= badge.target);
         return allAbove;
       }
-      case "ALL":
+      case "ALL": {
         // 모든 분야에서 배지 1개 이상: earnedBadgeIds에서 카테고리별로 1개씩 있는지 (habit, reading, quiz, speed, deep 제외 special)
         const byCategory = new Set(
           BADGE_LIST.filter((b) => earnedBadgeIds.includes(b.id)).map(
             (b) => b.category
           )
         );
-        return ["habit", "reading", "quiz", "speed", "deep"].every((c) =>
-          byCategory.has(c)
-        );
+        const requiredCategories: Array<BadgeItem["category"]> = [
+          "habit",
+          "reading",
+          "quiz",
+          "speed",
+          "deep",
+        ];
+        return requiredCategories.every((c) => byCategory.has(c));
+      }
       case "LEVEL":
         return (userStats.level ?? 0) >= badge.target;
       case "SPECIAL":
