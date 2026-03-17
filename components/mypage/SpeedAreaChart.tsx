@@ -205,31 +205,35 @@ export default function SpeedAreaChart({ data, labels }: SpeedAreaChartProps) {
                     value={peak.value}
                     position="top"
                     offset={8}
-                    content={({ x, y, value }) => (
-                      <g>
-                        <rect
-                          x={(x ?? 0) - 24}
-                          y={(y ?? 0) - 32}
-                          width={48}
-                          height={24}
-                          rx={6}
-                          fill="#F3F4F6"
-                          stroke="#E5E7EB"
-                          strokeWidth={1}
-                        />
-                        <text
-                          x={x}
-                          y={(y ?? 0) - 20}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill={LABEL_FILL}
-                          fontSize={11}
-                          fontWeight={600}
-                        >
-                          {value}
-                        </text>
-                      </g>
-                    )}
+                    content={({ x, y, value }) => {
+                      const xx = typeof x === "number" ? x : 0;
+                      const yy = typeof y === "number" ? y : 0;
+                      return (
+                        <g>
+                          <rect
+                            x={xx - 24}
+                            y={yy - 32}
+                            width={48}
+                            height={24}
+                            rx={6}
+                            fill="#F3F4F6"
+                            stroke="#E5E7EB"
+                            strokeWidth={1}
+                          />
+                          <text
+                            x={xx}
+                            y={yy - 20}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill={LABEL_FILL}
+                            fontSize={11}
+                            fontWeight={600}
+                          >
+                            {value}
+                          </text>
+                        </g>
+                      );
+                    }}
                   />
                 </ReferenceDot>
               )}
