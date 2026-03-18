@@ -80,6 +80,53 @@ export default async function HomePage() {
           recommended={recommended}
         />
       </section>
+
+      {/* 3. 홈 푸터 - 서비스 링크 */}
+      <footer
+        className="w-full border-t border-gray-100 bg-gray-50/60 px-4 py-6 md:py-8"
+        aria-label="또독 서비스 안내 푸터"
+      >
+        <div className="max-w-[1280px] mx-auto flex flex-col gap-3 md:gap-2 text-xs md:text-sm text-gray-600">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3">
+            <span className="font-medium text-gray-700">또독</span>
+            <nav className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <a
+                href="https://www.notion.so/3115b508476980bb9108c3d4cb68643c"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-gray-900 hover:underline underline-offset-4"
+              >
+                이용 안내
+              </a>
+              <span className="hidden md:inline text-gray-300" aria-hidden>
+                |
+              </span>
+              <a
+                href="https://tto-dock-admin.vercel.app/"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-gray-900 hover:underline underline-offset-4"
+              >
+                관리자(Admin)
+              </a>
+              <span className="hidden md:inline text-gray-300" aria-hidden>
+                |
+              </span>
+              <a
+                href="/service-proposal.pdf"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-gray-900 hover:underline underline-offset-4"
+              >
+                서비스 제안서
+              </a>
+            </nav>
+          </div>
+          <p className="text-[11px] md:text-xs text-gray-400">
+            © {new Date().getFullYear()} 또독. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
