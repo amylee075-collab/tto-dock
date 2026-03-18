@@ -102,3 +102,9 @@ h1 {
     font-size: 1.5rem;
   }
 }
+
+/* 주간 학습량·속도 변화: 양끝(양옆 Y축) 세로 점선만 제거, 날짜 기준선은 유지 */
+.growth-chart-card .recharts-cartesian-grid-vertical line:first-child,
+.growth-chart-card .recharts-cartesian-grid-vertical line:last-child {
+  display: none;
+}

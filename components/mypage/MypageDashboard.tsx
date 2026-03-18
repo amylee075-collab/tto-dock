@@ -144,8 +144,8 @@ export default function MypageDashboard() {
   const [showAllRecords, setShowAllRecords] = useState(false);
   const emptyRetryRef = useRef(false);
 
-  const refresh = async () => {
-    setLoading(true);
+  const refresh = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const nextLogs = (await loadStudyLogs("reading_session")) as StudyLogRecord<"reading_session">[];
     const sortedLogs = [...nextLogs].sort((a, b) => {
       const aTime = new Date(
@@ -158,7 +158,7 @@ export default function MypageDashboard() {
     });
     setReadingLogs(sortedLogs);
     setStats(aggregateDashboardStatsFromLogs(sortedLogs));
-    setLoading(false);
+    if (showLoading) setLoading(false);
   };
 
   useEffect(() => {
@@ -198,10 +198,11 @@ export default function MypageDashboard() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    const onStudyLogsUpdated = () => void refresh();
-    const onFocus = () => void refresh();
+    const silentRefresh = () => void refresh(false);
+    const onStudyLogsUpdated = silentRefresh;
+    const onFocus = silentRefresh;
     const onVisibility = () => {
-      if (document.visibilityState === "visible") void refresh();
+      if (document.visibilityState === "visible") silentRefresh();
     };
 
     if (!isAuthenticated) return;

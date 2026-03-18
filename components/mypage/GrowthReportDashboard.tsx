@@ -14,7 +14,7 @@ import {
 } from "@/lib/study-log-types";
 import { getCPMTier } from "@/lib/hooks/useCPM";
 import { STUDY_LOGS_UPDATED_EVENT, useUserStatus } from "@/hooks/useUserStatus";
-import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from "recharts";
+import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, Tooltip } from "recharts";
 import WeeklyBarChart from "@/components/mypage/WeeklyBarChart";
 import SpeedAreaChart from "@/components/mypage/SpeedAreaChart";
 import MypageTabs from "@/components/mypage/MypageTabs";
@@ -142,6 +142,40 @@ function GrowthSkeletonCard({ blocks = 3 }: { blocks?: number }) {
   );
 }
 
+/** 방사형 그래프: 영역 라벨을 바깥으로 밀어 축 숫자와 겹치지 않게 함 (최소 20px 여백) */
+function renderAngleAxisTick(
+  cx: number,
+  cy: number,
+  outerRadius: number,
+  paddingPx: number,
+  fontSize: number,
+  fontWeight: number
+) {
+  return (props: { x?: string | number; y?: string | number; payload?: { value?: string; subject?: string } }) => {
+    const x = Number(props.x ?? 0);
+    const y = Number(props.y ?? 0);
+    const label = props.payload?.value ?? props.payload?.subject ?? "";
+    const r = Math.hypot(x - cx, y - cy) || 1;
+    const dx = ((x - cx) / r) * paddingPx;
+    const dy = ((y - cy) / r) * paddingPx;
+    return (
+      <g style={{ zIndex: 10 }} className="pointer-events-none">
+        <text
+          x={x + dx}
+          y={y + dy}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#212529"
+          fontSize={fontSize}
+          fontWeight={fontWeight}
+        >
+          {label}
+        </text>
+      </g>
+    );
+  };
+}
+
 export default function GrowthReportDashboard() {
   const { data: session } = useSession();
   const { isAuthenticated, authStatus, loadStudyLogs } = useUserStatus();
@@ -151,8 +185,8 @@ export default function GrowthReportDashboard() {
   const emptyRetryRef = useRef(false);
   const [profileNickname, setProfileNickname] = useState<string | null>(null);
 
-  const refresh = async () => {
-    setLoading(true);
+  const refresh = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const nextLogs = (await loadStudyLogs("reading_session")) as StudyLogRecord<"reading_session">[];
     const sortedLogs = [...nextLogs].sort((a, b) => {
       const aTime = new Date(
@@ -166,7 +200,7 @@ export default function GrowthReportDashboard() {
 
     setReadingLogs(sortedLogs);
     setStats(aggregateDashboardStatsFromLogs(sortedLogs));
-    setLoading(false);
+    if (showLoading) setLoading(false);
   };
 
   useEffect(() => {
@@ -204,10 +238,11 @@ export default function GrowthReportDashboard() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    const onStudyLogsUpdated = () => void refresh();
-    const onFocus = () => void refresh();
+    const silentRefresh = () => void refresh(false);
+    const onStudyLogsUpdated = silentRefresh;
+    const onFocus = silentRefresh;
     const onVisibility = () => {
-      if (document.visibilityState === "visible") void refresh();
+      if (document.visibilityState === "visible") silentRefresh();
     };
 
     if (!isAuthenticated) return;
@@ -376,6 +411,25 @@ export default function GrowthReportDashboard() {
     );
   }
 
+  /* 로딩 중에는 빈 데이터 문구 대신 스켈레톤 표시 → "데이터가 없습니다" 깜빡임 제거 */
+  if (loading) {
+    return (
+      <div className="py-8 font-pretendard leading-relaxed">
+        <div className="space-y-12">
+          <header className="mb-2">
+            <h1 className="text-[28px] font-bold tracking-tight text-[#212529]">
+              나의 성장 리포트
+            </h1>
+          </header>
+          <MypageTabs />
+          <GrowthSkeletonCard blocks={4} />
+          <GrowthSkeletonCard blocks={3} />
+          <GrowthSkeletonCard blocks={2} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="py-8 font-pretendard leading-relaxed">
       <div className="space-y-12">
@@ -468,10 +522,10 @@ export default function GrowthReportDashboard() {
           </div>
         </GrowthSectionCard>
 
-        {/* 7일 학습 통계 차트 */}
+        {/* 7일 학습 통계 차트 — 모바일에서 차트 가로폭 확대 */}
         <GrowthSectionCard title="나의 문해력 성장 곡선">
           {hasGrowthData ? (
-            <div className="space-y-5">
+            <div className="space-y-5 -mx-2 md:mx-0">
               <div className="flex items-center gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF2FF] text-[#4F46E5]">
                   📈
@@ -525,32 +579,92 @@ export default function GrowthReportDashboard() {
         <div className="grid gap-4 lg:grid-cols-2">
           <GrowthSectionCard title="문해 성장 프로필">
             {hasGrowthData && cumulativeRadarData.length > 0 ? (
-              <div className="p-6">
-                <div className="h-[260px] w-full min-w-0 flex items-center justify-center overflow-visible">
-                  <RadarChart
-                    width={260}
-                    height={260}
-                    data={cumulativeRadarData}
-                    margin={{ top: 24, right: 24, bottom: 24, left: 24 }}
-                  >
-                    <PolarGrid stroke="#FDE7D7" />
-                    <PolarAngleAxis
-                      dataKey="subject"
-                      tick={{ fill: "#212529", fontSize: 12, fontWeight: 700 }}
-                    />
-                    <PolarRadiusAxis
-                      angle={90}
-                      domain={[0, 100]}
-                      tick={{ fill: "#9CA3AF", fontSize: 10 }}
-                    />
-                    <Radar
-                      dataKey="value"
-                      stroke="#F97316"
-                      fill="#FDBA74"
-                      fillOpacity={0.35}
-                      strokeWidth={2}
-                    />
-                  </RadarChart>
+              <div className="p-4 md:p-6">
+                <div className="h-[300px] md:h-[420px] w-full min-w-0 flex items-center justify-center overflow-visible">
+                  {/* 모바일 300px */}
+                  <div className="md:hidden flex items-center justify-center [&_.recharts-polar-angle-axis-tick]:relative [&_.recharts-polar-angle-axis-tick]:z-10">
+                    <RadarChart
+                      width={300}
+                      height={300}
+                      data={cumulativeRadarData}
+                      margin={{ top: 56, right: 56, bottom: 56, left: 56 }}
+                    >
+                      <PolarGrid stroke="#FDE7D7" />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 100]}
+                        tickCount={6}
+                        tick={{ fill: "#9CA3AF", fontSize: 10 }}
+                      />
+                      <Tooltip
+                        cursor={false}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const p = payload[0]?.payload as { subject?: string; value?: number };
+                          return (
+                            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                              <span className="text-xs font-semibold text-gray-500">{p?.subject}</span>
+                              <span className="ml-2 text-sm font-bold text-[#212529]">{p?.value ?? 0}점</span>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Radar
+                        dataKey="value"
+                        stroke="#F97316"
+                        fill="#FDBA74"
+                        fillOpacity={0.35}
+                        strokeWidth={2}
+                        dot={{ r: 5, fill: "#F97316", stroke: "#fff", strokeWidth: 2 }}
+                      />
+                      <PolarAngleAxis
+                        dataKey="subject"
+                        tick={renderAngleAxisTick(150, 150, 94, 20, 12, 700)}
+                      />
+                    </RadarChart>
+                  </div>
+                  {/* PC·태블릿 420px */}
+                  <div className="hidden md:flex items-center justify-center [&_.recharts-polar-angle-axis-tick]:relative [&_.recharts-polar-angle-axis-tick]:z-10">
+                    <RadarChart
+                      width={420}
+                      height={420}
+                      data={cumulativeRadarData}
+                      margin={{ top: 72, right: 72, bottom: 72, left: 72 }}
+                    >
+                      <PolarGrid stroke="#FDE7D7" />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 100]}
+                        tickCount={6}
+                        tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                      />
+                      <Tooltip
+                        cursor={false}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const p = payload[0]?.payload as { subject?: string; value?: number };
+                          return (
+                            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                              <span className="text-xs font-semibold text-gray-500">{p?.subject}</span>
+                              <span className="ml-2 text-sm font-bold text-[#212529]">{p?.value ?? 0}점</span>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Radar
+                        dataKey="value"
+                        stroke="#F97316"
+                        fill="#FDBA74"
+                        fillOpacity={0.35}
+                        strokeWidth={2}
+                        dot={{ r: 5, fill: "#F97316", stroke: "#fff", strokeWidth: 2 }}
+                      />
+                      <PolarAngleAxis
+                        dataKey="subject"
+                        tick={renderAngleAxisTick(210, 210, 138, 20, 13, 700)}
+                      />
+                    </RadarChart>
+                  </div>
                 </div>
               </div>
             ) : (

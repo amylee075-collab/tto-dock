@@ -390,11 +390,14 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 
 #### 8.4.2 `/mypage/growth-report` — 나의 성장 리포트
 
+- **로딩·갱신**
+  - 최초 진입 시에만 로딩 UI(스켈레톤) 표시; 포커스/탭 전환/visibility 시에는 `refresh(false)`로 백그라운드만 갱신해 "데이터가 없습니다" 깜빡임 방지.
 - **7일 학습 통계**
-  - `weeklySentencesByDay` → 막대 그래프(주간 학습량)
-  - `weeklyWpmByDay` → 라인+에어리어 그래프(속도 변화)
-  - 두 그래프 모두 동일한 margin·padding·5칸 X축으로 정렬해 시각적으로 수직 정렬.
-
+  - `weeklySentencesByDay` → 막대 그래프(주간 학습량, `WeeklyBarChart`)
+  - `weeklyWpmByDay` → 라인+에어리어 그래프(속도 변화, `SpeedAreaChart`)
+  - 두 그래프는 `lib/growth-chart-layout.ts`의 margin·X축 padding·스타일 공유. Recharts `ResponsiveContainer`는 부모 크기가 양수일 때만 렌더(ResizeObserver + `containerReady`)하여 width/height -1 경고 방지.
+- **문해 성장 프로필**
+  - 4영역(어휘력·이해력·사고력·표현력) 방사형 그래프(Recharts `RadarChart`). 도메인 [0, 100], `tickCount={6}`. 영역 라벨은 커스텀 틱으로 그래프 바깥쪽 여백 확보, 꼭짓점 호버 시 툴팁으로 점수 표시.
 - **활동 요약 카드**
   - 최근 7일 로그 기반으로 `학습 일수 / 읽은 문장 / 평균 속도 / 평균 정답률` 계산.
   - 값은 `text-[32px] font-black text-orange-500`(KPI) + 하단 라벨 `text-[14px] font-medium text-gray-500`.
@@ -403,9 +406,9 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 
 ---
 
-## 8. 마이페이지 피드백·배지
+## 9. 마이페이지 피드백·배지
 
-### 8.1 맞춤 피드백
+### 9.1 맞춤 피드백
 
 **위치:** `lib/mypage-data.ts` — `getFeedbackFromStats(stats)`
 
@@ -426,7 +429,7 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 | streakDays ≥ 3              | 연속 학습 중                       | -                           |
 | 학습 있음, 위 조건 없음     | “오늘도 수고했어요” 1개            | 매일 10분 읽기 습관         |
 
-### 8.2 성취 배지 해금
+### 9.2 성취 배지 해금
 
 **위치:** `components/mypage/MypageDashboard.tsx` — `getBadgesWithUnlocked(stats)`
 
@@ -444,7 +447,7 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 
 ---
 
-## 9. 읽기 후 코칭 메시지
+## 10. 읽기 후 코칭 메시지
 
 **위치:** `components/reading/CoachingFeedback.tsx` — `getFeedbackMessage(tier, quizCorrect, quizTotal)`
 
@@ -460,23 +463,23 @@ rawCPM = (totalChars × 60) / Math.max(sec, 1)
 
 ---
 
-## 10. 시각화·게이지
+## 11. 시각화·게이지
 
-### 10.1 CPM → 게이지 퍼센트
+### 11.1 CPM → 게이지 퍼센트
 
 **위치:** `components/mypage/SpeedChart.tsx` — `cpmToPercent(cpm)`
 
 - **공식:** `min(100, round((cpm / 1000) * 100))`.
 - CPM 0~1000을 0~100%로 선형 매핑.
 
-### 10.2 진행률 퍼센트
+### 11.2 진행률 퍼센트
 
 - **읽기 진행률:** `progressPercent = (readCount / totalSentences) * 100` (반올림).
 - **퀴즈 진행률:** (현재까지 푼 문항 인덱스 / 전체 문항 수) × 100.
 
 ---
 
-## 11. 기타 상수·레이아웃
+## 12. 기타 상수·레이아웃
 
 - **바텀 네비 높이:** `BOTTOM_NAV_HEIGHT_REM = 3.5` (h-14, 56px).
 - **읽기 네비 바 높이:** `READING_NAV_BAR_HEIGHT_REM = 4.5` (본문 하단 패딩용).

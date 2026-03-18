@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   Bar,
   BarChart,
-  CartesianGrid,
   LabelList,
   ResponsiveContainer,
   XAxis,
@@ -20,7 +19,6 @@ import {
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 const BAR_SIZE = 32;
 const BAR_FILL = "#ff5700";
-/** 평면 라벨용 텍스트 색 (배경과 대비 확보) */
 const LABEL_FILL = "#111827";
 
 interface WeeklyBarChartProps {
@@ -61,17 +59,36 @@ export default function WeeklyBarChart({ data, labels }: WeeklyBarChartProps) {
   );
 
   const showBars = hasBarData(arr);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [containerReady, setContainerReady] = useState(false);
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const check = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      setContainerReady((prev) => (prev ? true : w > 0 && h > 0));
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showBars]);
 
   return (
     <section className={GROWTH_CHART_STYLE.CARD_CLASS}>
       <h3 className={GROWTH_CHART_STYLE.TITLE_CLASS}>주간 학습량</h3>
       <div
+        ref={wrapperRef}
         className={GROWTH_CHART_STYLE.CHART_WRAPPER_CLASS}
-        style={{ minHeight: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT }}
+        style={{ minHeight: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT, height: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT }}
       >
         {showBars ? (
+          containerReady ? (
           <ResponsiveContainer
             width="100%"
+            minWidth={0}
             minHeight={GROWTH_CHART_STYLE.CHART_MIN_HEIGHT}
           >
             <BarChart
@@ -80,12 +97,6 @@ export default function WeeklyBarChart({ data, labels }: WeeklyBarChartProps) {
               barCategoryGap="12%"
               barGap={4}
             >
-              <CartesianGrid
-                strokeDasharray={GROWTH_CHART_STYLE.GRID_STROKE_DASHARRAY}
-                stroke={GROWTH_CHART_STYLE.GRID_STROKE}
-                horizontal={false}
-                vertical
-              />
               <XAxis
                 type="category"
                 dataKey="name"
@@ -138,6 +149,7 @@ export default function WeeklyBarChart({ data, labels }: WeeklyBarChartProps) {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          ) : null
         ) : (
           <div
             className="flex items-center justify-center text-sm font-medium text-gray-400 px-4"

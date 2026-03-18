@@ -1,10 +1,8 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, useRef, useEffect } from "react";
 import {
   Area,
-  AreaChart,
-  CartesianGrid,
   ComposedChart,
   Label,
   Line,
@@ -101,17 +99,37 @@ export default function SpeedAreaChart({ data, labels }: SpeedAreaChartProps) {
   );
   const peak = chartData[peakIndex];
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [containerReady, setContainerReady] = useState(false);
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const check = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      setContainerReady((prev) => (prev ? true : w > 0 && h > 0));
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showChart]);
+
   return (
     <section className={GROWTH_CHART_STYLE.CARD_CLASS}>
       <SpeedChartDefs gradientId={gradientId} />
       <h3 className={GROWTH_CHART_STYLE.TITLE_CLASS}>속도 변화</h3>
       <div
+        ref={wrapperRef}
         className={GROWTH_CHART_STYLE.CHART_WRAPPER_CLASS}
-        style={{ minHeight: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT }}
+        style={{ minHeight: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT, height: GROWTH_CHART_STYLE.CHART_MIN_HEIGHT }}
       >
         {showChart ? (
+          containerReady ? (
           <ResponsiveContainer
             width="100%"
+            minWidth={0}
             minHeight={GROWTH_CHART_STYLE.CHART_MIN_HEIGHT}
           >
             <ComposedChart
@@ -123,12 +141,6 @@ export default function SpeedAreaChart({ data, labels }: SpeedAreaChartProps) {
               }}
               onMouseLeave={() => setHoveredIndex(null)}
             >
-              <CartesianGrid
-                strokeDasharray={GROWTH_CHART_STYLE.GRID_STROKE_DASHARRAY}
-                stroke={GROWTH_CHART_STYLE.GRID_STROKE}
-                horizontal={false}
-                vertical
-              />
               <XAxis
                 type="category"
                 dataKey="name"
@@ -148,7 +160,7 @@ export default function SpeedAreaChart({ data, labels }: SpeedAreaChartProps) {
                 hide
               />
               <Tooltip
-                cursor={{ stroke: GROWTH_CHART_STYLE.GRID_STROKE, strokeDasharray: "3 3" }}
+                cursor={false}
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   const d = payload[0].payload;
@@ -239,6 +251,7 @@ export default function SpeedAreaChart({ data, labels }: SpeedAreaChartProps) {
               )}
             </ComposedChart>
           </ResponsiveContainer>
+          ) : null
         ) : (
           <div
             className="flex items-center justify-center text-sm font-medium text-gray-400 px-4"
